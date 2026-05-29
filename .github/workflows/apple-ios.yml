@@ -1,0 +1,19 @@
+name: Apple iOS (iPhone)
+on: { push: { branches: [main, lab] }, pull_request: {}, workflow_dispatch: {} }
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.repository }}-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    uses: ./.github/workflows/_apple-sim-tests.yml
+    with:
+      workflow-name: "iOS iPhone"
+      scheme: "Euryale"
+      sim-runtime-prefix: "com.apple.CoreSimulator.SimRuntime.iOS"
+      device-name-regex: "^iPhone 17$"
+      upload-snapshots: true

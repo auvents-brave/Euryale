@@ -1,0 +1,151 @@
+name: _Apple Simulator Tests (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      workflow-name:
+        required: true
+        type: string
+      scheme:
+        required: true
+        type: string
+      sim-runtime-prefix:
+        required: true
+        type: string
+      device-name-regex:
+        required: false
+        type: string
+        default: ".*"
+      upload-snapshots:
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# Opt JavaScript actions into the Node.js 24 runtime ahead of the 2nd June 2026
+# default switch, so the deprecated Node.js 20 runtime warning disappears.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  test:
+    name: "${{ inputs.workflow-name }}"
+    runs-on: macos-26
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "26.5"
+
+      - name: Check Swift Version
+        run: swift --version
+
+      - name: Resolve simulator destination
+        id: sim
+        shell: bash
+        env:
+          RUNTIME_PREFIX: ${{ inputs.sim-runtime-prefix }}
+          DEVICE_REGEX: ${{ inputs.device-name-regex }}
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import json, os, re, subprocess, sys
+
+          prefix = os.environ["RUNTIME_PREFIX"]
+          pattern = re.compile(os.environ["DEVICE_REGEX"])
+
+          data = json.loads(subprocess.check_output(
+              ["xcrun", "simctl", "list", "devices", "available", "--json"], text=True))
+
+          def runtime_ver(runtime_key):
+            m = re.search(r'-(\d+)(?:-(\d+))?(?:-(\d+))?$', runtime_key)
+            if not m:
+              return (0, 0, 0)
+            return (int(m.group(1)), int(m.group(2) or 0), int(m.group(3) or 0))
+
+          candidates = []
+          for runtime_key, devices in data.get("devices", {}).items():
+            if not runtime_key.startswith(prefix + "-"):
+              continue
+            rv = runtime_ver(runtime_key)
+            for d in devices:
+              if not d.get("isAvailable", False):
+                continue
+              name = d.get("name", "")
+              if not pattern.search(name):
+                continue
+              candidates.append((rv, runtime_key, d["udid"], name))
+
+          if not candidates:
+            print("No simulator candidates found.", file=sys.stderr)
+            sys.exit(1)
+
+          # Sort by (runtime version, device name) so the tie-break among
+          # devices sharing the latest runtime is deterministic.  Sorting on
+          # the runtime alone left the choice to simctl's listing order, which
+          # could silently swap, say, an @3x for an @2x iPhone between runs and
+          # break scale-sensitive snapshot references.
+          candidates.sort(key=lambda x: (x[0], x[3]))
+          rv, runtime_key, udid, name = candidates[-1]
+          print(f"Using simulator: {name} | runtime={runtime_key} | udid={udid} | reason=latest-available")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+            out.write(f"destination=id={udid}\n")
+            out.write(f"runtime_key={runtime_key}\n")
+          PY
+
+      - name: Run tests
+        shell: bash
+        env:
+          SCHEME: ${{ inputs.scheme }}
+          DESTINATION: ${{ steps.sim.outputs.destination }}
+          RUNTIME_KEY: ${{ steps.sim.outputs.runtime_key }}
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import os
+          import re
+          import subprocess
+          import sys
+
+          scheme = os.environ["SCHEME"]
+          destination = os.environ["DESTINATION"]
+          runtime_key = os.environ["RUNTIME_KEY"]
+
+          if not re.fullmatch(r"[A-Za-z0-9._ -]+", scheme):
+              print(f"Invalid scheme: {scheme}", file=sys.stderr)
+              sys.exit(1)
+
+          if not re.fullmatch(r"id=[A-Fa-f0-9-]+", destination):
+              print(f"Invalid destination: {destination}", file=sys.stderr)
+              sys.exit(1)
+
+          print(f"Testing on simulator destination={destination} runtime={runtime_key}")
+
+          subprocess.run([
+              "xcodebuild",
+              "-resolvePackageDependencies",
+              "-scheme", scheme,
+          ], check=True)
+
+          subprocess.run([
+              "xcodebuild",
+              "test",
+              "-scheme", scheme,
+              "-destination", destination,
+              "-skipPackagePluginValidation",
+              "-skipMacroValidation",
+          ], check=True)
+          PY
+
+      - name: Upload snapshot references
+        if: ${{ always() && inputs.upload-snapshots }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-references
+          path: Tests/EuryaleTests/__Snapshots__/
+          if-no-files-found: warn
