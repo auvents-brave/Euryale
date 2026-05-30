@@ -1,3 +1,4 @@
+public import Stheno
 public import SwiftUI
 
 // MARK: - NetworkAddressView
@@ -7,15 +8,11 @@ public import SwiftUI
 /// - `.ipv4Only` — shows a single IPv4 field.
 /// - `.ipv4IPv6` — shows a segmented picker to switch between IPv4 and IPv6 formats.
 ///
-/// When a `domainResolver` closure is provided a **Domain Name** disclosure row appears
-/// where the user can type a hostname and resolve it to an IP address in-place.
+/// A **Domain Name** disclosure row lets the user resolve a hostname to an IP address
+/// in-place — by default via Stheno's ``DomainResolver``. Pass `domainResolver: nil` to hide it.
 ///
 /// ```swift
-/// NetworkAddressView(
-///     mode: .ipv4IPv6,
-///     address: $host,
-///     domainResolver: DomainResolver.resolve   // from Stheno
-/// )
+/// NetworkAddressView(mode: .ipv4IPv6, address: $host, port: $port)
 /// ```
 public struct NetworkAddressView: View {
 
@@ -34,8 +31,8 @@ public struct NetworkAddressView: View {
     /// Optional port binding. When provided a **Port** row is shown.
     private let port: Binding<String>?
 
-    /// Optional async closure that resolves a hostname to IP address strings.
-    /// Pass `nil` to hide the domain-name row.
+    /// Async closure resolving a hostname to IP address strings.
+    /// Defaults to Stheno's ``DomainResolver/resolve(_:)``; pass `nil` to hide the domain-name row.
     private let domainResolver: ((String) async throws -> [String])?
 
     @State private var ipVersion: IPAddressField.Filter = .ipv4
@@ -50,7 +47,7 @@ public struct NetworkAddressView: View {
         mode: Mode = .ipv4Only,
         address: Binding<String>,
         port: Binding<String>? = nil,
-        domainResolver: ((String) async throws -> [String])? = nil
+        domainResolver: ((String) async throws -> [String])? = DomainResolver.resolve
     ) {
         self.mode = mode
         _address = address
@@ -109,10 +106,13 @@ public struct NetworkAddressView: View {
                     HStack {
                         TextField("example.com", text: $domainName)
                             #if os(iOS)
-                            .keyboardType(.URL)
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.never)
                             #endif
+                            .onChange(of: domainName) { _, new in
+                                let filtered = sanitizeHostname(new)
+                                if filtered != new { domainName = filtered }
+                            }
 
                         Button {
                             Task { await resolve() }
@@ -160,13 +160,21 @@ public struct NetworkAddressView: View {
             default:    picked = results.first
             }
             if let ip = picked {
-                address = ip
-                showDomainResolver = false
+                address = ip // shown in the Address row above; panel stays open
             } else {
                 resolveError = "No \(ipVersion == .ipv6 ? "IPv6" : "IPv4") address found."
             }
         } catch {
             resolveError = error.localizedDescription
+        }
+    }
+
+    /// Keeps characters valid in a hostname: ASCII letters, digits, `.` and `-`.
+    private func sanitizeHostname(_ input: String) -> String {
+        input.filter { character in
+            (character.isASCII && (character.isLetter || character.isNumber))
+                || character == "."
+                || character == "-"
         }
     }
 }
@@ -185,16 +193,9 @@ public struct NetworkAddressView: View {
     Form { NetworkAddressView(mode: .ipv4IPv6, address: $addr, port: $port) }
 }
 
-#Preview("With domain resolver") {
+#Preview("No domain row") {
     @Previewable @State var addr = ""
     Form {
-        NetworkAddressView(
-            mode: .ipv4IPv6,
-            address: $addr,
-            domainResolver: { _ in
-                try await Task.sleep(for: .seconds(1))
-                return ["93.184.216.34", "2606:2800:21f:cb07:6820:80da:af6b:8b2c"]
-            }
-        )
+        NetworkAddressView(mode: .ipv4IPv6, address: $addr, domainResolver: nil)
     }
 }
