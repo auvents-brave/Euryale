@@ -9,6 +9,9 @@ public import SwiftUI
 /// - `.ipv6` — a single field restricted to hex digits and colons.
 /// - `.port` — a single numeric field clamped to 0–65 535.
 ///
+/// Filtering uses get/set `Binding`s so input is sanitised as you type without
+/// the character-dropping issues of the `onChange`-revert pattern.
+///
 /// ```swift
 /// IPAddressField(.ipv4, text: $address)
 /// IPAddressField(.port, text: $port)
@@ -28,7 +31,7 @@ public struct IPAddressField: View {
     private let filter: Filter
     @Binding private var text: String
 
-    /// Internal octets for IPv4 segmented display.
+    /// Octet strings backing the IPv4 segmented display (source of truth for `.ipv4`).
     @State private var octets: [String] = ["", "", "", ""]
     @FocusState private var octetFocus: Int?
 
@@ -44,9 +47,20 @@ public struct IPAddressField: View {
     public var body: some View {
         Group {
             switch filter {
-            case .ipv4:  ipv4Field
-            case .ipv6:  singleField(placeholder: "::", sanitize: sanitizeIPv6)
-            case .port:  singleField(placeholder: "0", sanitize: sanitizePort)
+            case .ipv4:
+                ipv4Field
+            case .ipv6:
+                TextField("::", text: sanitizing(sanitizeIPv6))
+                    #if os(iOS)
+                    .keyboardType(.asciiCapable)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    #endif
+            case .port:
+                TextField("0", text: sanitizing(sanitizePort))
+                    #if os(iOS)
+                    .keyboardType(.numberPad)
+                    #endif
             }
         }
         .onAppear { syncOctetsFromText() }
@@ -57,27 +71,13 @@ public struct IPAddressField: View {
     private var ipv4Field: some View {
         HStack(spacing: 2) {
             ForEach(0..<4, id: \.self) { idx in
-                TextField("0", text: $octets[idx])
-                    .frame(width: 36)
+                TextField("0", text: octetBinding(idx))
+                    .frame(width: 44)
                     .multilineTextAlignment(.center)
                     #if os(iOS)
                     .keyboardType(.numberPad)
                     #endif
                     .focused($octetFocus, equals: idx)
-                    .onChange(of: octets[idx]) { _, new in
-                        // Keep only digits, clamp to 0-255
-                        let digits = String(new.filter(\.isNumber).prefix(3))
-                        let clamped: String
-                        if let val = Int(digits), val > 255 {
-                            clamped = "255"
-                        } else {
-                            clamped = digits
-                        }
-                        if clamped != octets[idx] { octets[idx] = clamped }
-                        // Auto-advance after 3 digits
-                        if clamped.count == 3, idx < 3 { octetFocus = idx + 1 }
-                        syncTextFromOctets()
-                    }
 
                 if idx < 3 {
                     Text(".")
@@ -88,45 +88,56 @@ public struct IPAddressField: View {
         }
     }
 
-    // MARK: Generic single field
+    // MARK: Bindings
 
-    private func singleField(placeholder: String, sanitize: @escaping (String) -> String) -> some View {
-        TextField(placeholder, text: $text)
-            #if os(iOS)
-            .keyboardType(filter == .port ? .numberPad : .asciiCapable)
-            #endif
-            .onChange(of: text) { _, new in
-                let s = sanitize(new)
-                if s != new { text = s }
+    /// A binding that mirrors `text` but runs `sanitize` on every edit.
+    private func sanitizing(_ sanitize: @escaping (String) -> String) -> Binding<String> {
+        Binding(
+            get: { text },
+            set: { text = sanitize($0) }
+        )
+    }
+
+    /// A binding for one IPv4 octet: clamps to 0–255, rebuilds `text`, auto-advances focus.
+    private func octetBinding(_ idx: Int) -> Binding<String> {
+        Binding(
+            get: { octets[idx] },
+            set: { newValue in
+                let clamped = clampOctet(newValue)
+                octets[idx] = clamped
+                text = octets.joined(separator: ".")
+                if clamped.count == 3, idx < 3 { octetFocus = idx + 1 }
             }
+        )
     }
 
     // MARK: Sanitisers
 
+    private func clampOctet(_ input: String) -> String {
+        let digits = String(input.filter(\.isNumber).prefix(3))
+        if let value = Int(digits), value > 255 { return "255" }
+        return digits
+    }
+
     private func sanitizeIPv6(_ input: String) -> String {
         var s = String(input.filter { $0.isHexDigit || $0 == ":" })
-        // Collapse triple+ colons to "::"
         while s.contains(":::") { s = s.replacingOccurrences(of: ":::", with: "::") }
         return String(s.prefix(39)) // max IPv6 string length
     }
 
     private func sanitizePort(_ input: String) -> String {
         let digits = String(input.filter(\.isNumber).prefix(5))
-        if let val = Int(digits), val > 65_535 { return "65535" }
+        if let value = Int(digits), value > 65_535 { return "65535" }
         return digits
     }
 
-    // MARK: Sync helpers (octets ↔ text binding)
-
-    private func syncTextFromOctets() {
-        let joined = octets.joined(separator: ".")
-        if joined != text { text = joined }
-    }
+    // MARK: Seed octets from an incoming IPv4 string
 
     private func syncOctetsFromText() {
+        guard filter == .ipv4 else { return }
         let parts = text.components(separatedBy: ".").prefix(4)
         let padded = parts + Array(repeating: "", count: max(0, 4 - parts.count))
-        let newOctets = padded.map { String($0.prefix(3)) }
+        let newOctets = padded.map { clampOctet(String($0)) }
         if newOctets != octets { octets = newOctets }
     }
 }
