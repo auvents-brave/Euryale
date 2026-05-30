@@ -26,7 +26,7 @@ public struct SiriTipItem {
     let isVisible: Binding<Bool>
     let view: AnyView
 
-    public init<I: SiriTipDisplayable>(intent: I, isVisible: Binding<Bool>) {
+    public init<I: SiriTipDisplayable>(_ intent: I, _ isVisible: Binding<Bool>) {
         self.isVisible = isVisible
         #if os(macOS) || targetEnvironment(macCatalyst)
         self.view = AnyView(SiriTipView(intent: intent, isVisible: isVisible))
