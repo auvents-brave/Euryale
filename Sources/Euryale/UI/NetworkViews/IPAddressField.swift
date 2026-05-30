@@ -10,8 +10,9 @@ public import SwiftUI
 /// - `.ipv6` — hex digits and colons only.
 /// - `.port` — digits only, clamped to 0–65 535.
 ///
-/// Uses a local display buffer with insertion/deletion detection so the
-/// automatic dot never fights the Delete key.
+/// IPv4 uses a display buffer with insertion/deletion detection so the automatic
+/// dot never fights the Delete key. IPv6 and Port (no auto-insertion) use a
+/// simple sanitising binding.
 ///
 /// ```swift
 /// IPAddressField(.ipv4, text: $address)
@@ -31,7 +32,7 @@ public struct IPAddressField: View {
 
     private let filter: Filter
     @Binding private var text: String
-    @State private var display: String = ""
+    @State private var display: String = "" // IPv4 only
 
     // MARK: Init
 
@@ -43,54 +44,47 @@ public struct IPAddressField: View {
     // MARK: Body
 
     public var body: some View {
-        TextField(placeholder, text: $display)
+        switch filter {
+        case .ipv4: ipv4Field
+        case .ipv6: simpleField("::", sanitize: sanitizeIPv6)
+        case .port: simpleField("0", sanitize: sanitizePort)
+        }
+    }
+
+    // MARK: IPv4 — display buffer with insert/delete detection
+
+    private var ipv4Field: some View {
+        TextField("0.0.0.0", text: $display)
             .multilineTextAlignment(.leading)
             #if os(iOS)
-            .keyboardType(keyboardType)
+            .keyboardType(.numbersAndPunctuation)
             .autocorrectionDisabled()
             .textInputAutocapitalization(.never)
             #endif
             .onAppear { display = text }
             .onChange(of: display) { old, new in
-                let formatted = format(new, inserting: new.count > old.count)
+                let formatted = formatIPv4(new, inserting: new.count > old.count)
                 if formatted != new { display = formatted }
                 if formatted != text { text = formatted }
             }
             .onChange(of: text) { _, new in
-                // Reflect external programmatic changes (e.g. a reset).
-                if new != display { display = new }
+                if new != display { display = new } // external reset
             }
     }
 
-    // MARK: Configuration per filter
+    // MARK: IPv6 / Port — sanitising binding
 
-    private var placeholder: String {
-        switch filter {
-        case .ipv4: "0.0.0.0"
-        case .ipv6: "::"
-        case .port: "0"
-        }
+    private func simpleField(_ placeholder: String, sanitize: @escaping (String) -> String) -> some View {
+        TextField(placeholder, text: Binding(get: { text }, set: { text = sanitize($0) }))
+            .multilineTextAlignment(.leading)
+            #if os(iOS)
+            .keyboardType(filter == .port ? .numberPad : .asciiCapable)
+            .autocorrectionDisabled()
+            .textInputAutocapitalization(.never)
+            #endif
     }
 
-    #if os(iOS)
-        private var keyboardType: UIKeyboardType {
-            switch filter {
-            case .ipv4: .numbersAndPunctuation
-            case .ipv6: .asciiCapable
-            case .port: .numberPad
-            }
-        }
-    #endif
-
-    // MARK: Formatting
-
-    private func format(_ input: String, inserting: Bool) -> String {
-        switch filter {
-        case .ipv4: formatIPv4(input, inserting: inserting)
-        case .ipv6: sanitizeIPv6(input)
-        case .port: sanitizePort(input)
-        }
-    }
+    // MARK: Sanitisers
 
     /// Groups digits into up to four octets (≤ 3 digits, ≤ 255 each).
     /// On insertion only, appends a dot once an octet fills up — so the dot
