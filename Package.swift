@@ -54,11 +54,15 @@ var deps: [Package.Dependency] = [
 ]
 
 let packageDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
-let localSthenoPath = packageDirectory
-	.deletingLastPathComponent()
-	.appendingPathComponent("Stheno")
-	.path
-if FileManager.default.fileExists(atPath: localSthenoPath) {
+let siblingsRoot = packageDirectory.deletingLastPathComponent()
+let localSthenoPath = siblingsRoot.appendingPathComponent("Stheno").path
+// Use the sibling working copy only during local development — never when Euryale
+// is itself a checked-out dependency (its parent directory is SwiftPM's
+// `checkouts/`). In that case a sibling `Stheno` checkout would otherwise be
+// referenced by path and clash with a URL-based `Stheno` declared by the
+// consuming package ("conflicting identity for stheno").
+if siblingsRoot.lastPathComponent != "checkouts",
+   FileManager.default.fileExists(atPath: localSthenoPath) {
 	// Local development: use the sibling working copy of Stheno.
 	deps.append(.package(path: localSthenoPath))
 } else {
