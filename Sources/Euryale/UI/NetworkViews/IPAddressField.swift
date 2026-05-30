@@ -4,13 +4,14 @@ public import SwiftUI
 
 /// A single text field filtered to a specific network address format.
 ///
-/// - `.ipv4` — digits and dots only, capped at four octets, each clamped to 0–255
-///   (e.g. `192.168.1.1`).
+/// - `.ipv4` — digits only; a dot is inserted automatically after each 3-digit
+///   octet, and an explicit dot still ends a shorter octet (`10.0.0.1`).
+///   Each octet is clamped to 0–255, four octets max.
 /// - `.ipv6` — hex digits and colons only.
 /// - `.port` — digits only, clamped to 0–65 535.
 ///
-/// Filtering uses a get/set `Binding` so input is sanitised as you type, without
-/// the character-dropping issues of the `onChange`-revert pattern.
+/// Uses a local display buffer with insertion/deletion detection so the
+/// automatic dot never fights the Delete key.
 ///
 /// ```swift
 /// IPAddressField(.ipv4, text: $address)
@@ -30,6 +31,7 @@ public struct IPAddressField: View {
 
     private let filter: Filter
     @Binding private var text: String
+    @State private var display: String = ""
 
     // MARK: Init
 
@@ -41,13 +43,23 @@ public struct IPAddressField: View {
     // MARK: Body
 
     public var body: some View {
-        TextField(placeholder, text: sanitizedBinding)
+        TextField(placeholder, text: $display)
             .multilineTextAlignment(.leading)
             #if os(iOS)
             .keyboardType(keyboardType)
             .autocorrectionDisabled()
             .textInputAutocapitalization(.never)
             #endif
+            .onAppear { display = text }
+            .onChange(of: display) { old, new in
+                let formatted = format(new, inserting: new.count > old.count)
+                if formatted != new { display = formatted }
+                if formatted != text { text = formatted }
+            }
+            .onChange(of: text) { _, new in
+                // Reflect external programmatic changes (e.g. a reset).
+                if new != display { display = new }
+            }
     }
 
     // MARK: Configuration per filter
@@ -70,27 +82,20 @@ public struct IPAddressField: View {
         }
     #endif
 
-    /// A binding that mirrors `text` but sanitises every edit for the active filter.
-    private var sanitizedBinding: Binding<String> {
-        Binding(
-            get: { text },
-            set: { newValue in
-                switch filter {
-                case .ipv4: text = sanitizeIPv4(newValue)
-                case .ipv6: text = sanitizeIPv6(newValue)
-                case .port: text = sanitizePort(newValue)
-                }
-            }
-        )
+    // MARK: Formatting
+
+    private func format(_ input: String, inserting: Bool) -> String {
+        switch filter {
+        case .ipv4: formatIPv4(input, inserting: inserting)
+        case .ipv6: sanitizeIPv6(input)
+        case .port: sanitizePort(input)
+        }
     }
 
-    // MARK: Sanitisers
-
-    /// Builds up to four octets from the input. A dot is inserted automatically
-    /// once an octet reaches three digits, so only digits need to be typed —
-    /// but an explicit dot is still honoured to end a shorter octet (`1.1.1.1`).
-    /// Each octet is clamped to 0–255.
-    private func sanitizeIPv4(_ input: String) -> String {
+    /// Groups digits into up to four octets (≤ 3 digits, ≤ 255 each).
+    /// On insertion only, appends a dot once an octet fills up — so the dot
+    /// appears right after the 3rd digit, yet Delete can still remove it.
+    private func formatIPv4(_ input: String, inserting: Bool) -> String {
         var octets: [String] = [""]
         for character in input {
             if character == "." {
@@ -99,7 +104,6 @@ public struct IPAddressField: View {
                 }
             } else if character.isNumber {
                 if octets[octets.count - 1].count == 3 {
-                    // Current octet is full → auto-start the next one.
                     if octets.count < 4 { octets.append(String(character)) }
                 } else {
                     var current = octets[octets.count - 1] + String(character)
@@ -107,9 +111,12 @@ public struct IPAddressField: View {
                     octets[octets.count - 1] = current
                 }
             }
-            // Any other character is ignored.
         }
-        return octets.joined(separator: ".")
+        var result = octets.joined(separator: ".")
+        if inserting, octets.count < 4, octets[octets.count - 1].count == 3 {
+            result += "."
+        }
+        return result
     }
 
     /// Keeps hex digits and colons; collapses runs of 3+ colons to `::`.
