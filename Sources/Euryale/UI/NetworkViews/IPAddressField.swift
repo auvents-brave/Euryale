@@ -1,5 +1,9 @@
 public import SwiftUI
 
+// These network-configuration views rely on SwiftUI controls (DisclosureGroup,
+// segmented Picker) that don't exist on tvOS/watchOS — and aren't meaningful there.
+#if !os(tvOS) && !os(watchOS)
+
 // MARK: - IPAddressField
 
 /// A single text field filtered to a specific network address format.
@@ -143,3 +147,5 @@ public struct IPAddressField: View {
     @Previewable @State var port = "8080"
     Form { IPAddressField(.port, text: $port) }
 }
+
+#endif

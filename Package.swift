@@ -103,7 +103,7 @@ let package = Package(
     name: "Euryale",
 	defaultLocalization: "en",
     platforms: [
-        .macOS(.v13),
+        .macOS(.v14),
         .macCatalyst(.v17),
         .iOS(.v17),
         .tvOS(.v17),
