@@ -31,6 +31,9 @@ public struct NetworkAddressView: View {
     private let mode: Mode
     @Binding private var address: String
 
+    /// Optional port binding. When provided a **Port** row is shown.
+    private let port: Binding<String>?
+
     /// Optional async closure that resolves a hostname to IP address strings.
     /// Pass `nil` to hide the domain-name row.
     private let domainResolver: ((String) async throws -> [String])?
@@ -46,10 +49,12 @@ public struct NetworkAddressView: View {
     public init(
         mode: Mode = .ipv4Only,
         address: Binding<String>,
+        port: Binding<String>? = nil,
         domainResolver: ((String) async throws -> [String])? = nil
     ) {
         self.mode = mode
         _address = address
+        self.port = port
         self.domainResolver = domainResolver
     }
 
@@ -62,6 +67,12 @@ public struct NetworkAddressView: View {
             }
 
             addressRow
+
+            if let port {
+                LabeledContent("Port") {
+                    IPAddressField(.port, text: port)
+                }
+            }
 
             if domainResolver != nil {
                 domainRow
@@ -162,14 +173,16 @@ public struct NetworkAddressView: View {
 
 // MARK: - Previews
 
-#Preview("IPv4 only") {
+#Preview("IPv4 + Port") {
     @Previewable @State var addr = ""
-    Form { NetworkAddressView(address: $addr) }
+    @Previewable @State var port = "8080"
+    Form { NetworkAddressView(address: $addr, port: $port) }
 }
 
-#Preview("IPv4 + IPv6") {
+#Preview("IPv4 + IPv6 + Port") {
     @Previewable @State var addr = ""
-    Form { NetworkAddressView(mode: .ipv4IPv6, address: $addr) }
+    @Previewable @State var port = ""
+    Form { NetworkAddressView(mode: .ipv4IPv6, address: $addr, port: $port) }
 }
 
 #Preview("With domain resolver") {

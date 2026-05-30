@@ -18,7 +18,7 @@ public enum NetworkProtocol: String, CaseIterable, Hashable, Identifiable {
 
 /// A protocol selector that adapts its presentation to the number of available options.
 ///
-/// - **One** available protocol — displayed as a read-only label (no choice to make).
+/// - **One** available protocol — no row is shown (nothing to choose).
 /// - **Two or three** protocols — displayed as a `Picker` (segmented on iOS, radio on macOS).
 ///
 /// When ``NetworkProtocol/udpBroadcast`` is selected the `addressDisabled` binding
@@ -82,11 +82,8 @@ public struct NetworkProtocolView: View {
 
     @ViewBuilder
     private var protocolRow: some View {
-        if available.count == 1, let only = available.first {
-            LabeledContent("Protocol") {
-                Text(only.rawValue).foregroundStyle(.secondary)
-            }
-        } else {
+        // A single protocol means there's nothing to choose — show no row.
+        if available.count > 1 {
             LabeledContent("Protocol") {
                 Picker("Protocol", selection: $selection) {
                     ForEach(available) { proto in

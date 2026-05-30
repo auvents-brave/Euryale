@@ -59,6 +59,10 @@ public struct IPAddressField: View {
                 if formatted != new { display = formatted }
                 if formatted != text { text = formatted }
             }
+            .onChange(of: text) { _, newValue in
+                // Reflect external changes (version switch reset, resolved address…).
+                if newValue != display { display = format(newValue, inserting: false) }
+            }
     }
 
     // MARK: Configuration per filter
