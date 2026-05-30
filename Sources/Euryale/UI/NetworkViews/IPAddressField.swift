@@ -86,18 +86,30 @@ public struct IPAddressField: View {
 
     // MARK: Sanitisers
 
-    /// Keeps digits and dots; caps at four octets, each ≤ 3 digits and ≤ 255.
-    /// Preserves a trailing dot so the next octet can be typed.
+    /// Builds up to four octets from the input. A dot is inserted automatically
+    /// once an octet reaches three digits, so only digits need to be typed —
+    /// but an explicit dot is still honoured to end a shorter octet (`1.1.1.1`).
+    /// Each octet is clamped to 0–255.
     private func sanitizeIPv4(_ input: String) -> String {
-        let filtered = input.filter { $0.isNumber || $0 == "." }
-        var groups = filtered.components(separatedBy: ".")
-        if groups.count > 4 { groups = Array(groups.prefix(4)) }
-        groups = groups.map { group in
-            let digits = String(group.prefix(3))
-            if let value = Int(digits), value > 255 { return "255" }
-            return digits
+        var octets: [String] = [""]
+        for character in input {
+            if character == "." {
+                if octets.count < 4, octets[octets.count - 1].isEmpty == false {
+                    octets.append("")
+                }
+            } else if character.isNumber {
+                if octets[octets.count - 1].count == 3 {
+                    // Current octet is full → auto-start the next one.
+                    if octets.count < 4 { octets.append(String(character)) }
+                } else {
+                    var current = octets[octets.count - 1] + String(character)
+                    if let value = Int(current), value > 255 { current = "255" }
+                    octets[octets.count - 1] = current
+                }
+            }
+            // Any other character is ignored.
         }
-        return groups.joined(separator: ".")
+        return octets.joined(separator: ".")
     }
 
     /// Keeps hex digits and colons; collapses runs of 3+ colons to `::`.
