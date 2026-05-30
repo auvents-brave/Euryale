@@ -117,7 +117,7 @@ public struct NetworkProtocolView: View {
                             Spacer()
                             if selectedBonjourType == type {
                                 Image(systemName: "checkmark")
-                                    .foregroundStyle(.accentColor)
+                                    .foregroundStyle(Color.accentColor)
                             }
                         }
                         .contentShape(Rectangle())
