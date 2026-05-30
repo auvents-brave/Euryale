@@ -28,13 +28,9 @@ var prods: [Product] = [
 
 var deps: [Package.Dependency] = [
 	.package(
-		// Upper bound excludes 1.13.0+ : that release ships a Logger
-		// `prepareMetadata` that fails Swift 6.3 strict type-checking
-		// ("Cannot assign value of type 'String' to subscript of type
-		// 'Logger.MetadataValue'").  Re-evaluate when upstream releases a
-		// fixed 1.13.x patch.
+		// Aligned with Stheno, which requires swift-log 1.13.0+.
 		url: "https://github.com/apple/swift-log",
-		"1.6.0"..<"1.13.0"
+		from: "1.13.0"
 	),
 	.package(
 		// Upper bound excludes 1.19.0+ : those releases ship a Swift
