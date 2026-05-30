@@ -43,16 +43,24 @@ public struct IPAddressField: View {
     // MARK: Body
 
     public var body: some View {
-        TextField(placeholder, text: $text)
+        TextField(placeholder, text: sanitizedBinding)
             .multilineTextAlignment(.leading)
             #if os(iOS)
             .autocorrectionDisabled()
             .textInputAutocapitalization(.never)
             #endif
-            .onChange(of: text) { old, new in
-                let formatted = format(new, inserting: new.count > old.count)
-                if formatted != new { text = formatted }
+    }
+
+    /// A binding that sanitises every edit. Routing through `set` forces a write
+    /// on every keystroke (so valid input always commits), and comparing the new
+    /// length to the current one tells insertions from deletions for IPv4's dot.
+    private var sanitizedBinding: Binding<String> {
+        Binding(
+            get: { text },
+            set: { newValue in
+                text = format(newValue, inserting: newValue.count > text.count)
             }
+        )
     }
 
     // MARK: Configuration per filter
