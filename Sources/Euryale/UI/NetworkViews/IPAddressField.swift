@@ -46,7 +46,6 @@ public struct IPAddressField: View {
         TextField(placeholder, text: $text)
             .multilineTextAlignment(.leading)
             #if os(iOS)
-            .keyboardType(keyboardType)
             .autocorrectionDisabled()
             .textInputAutocapitalization(.never)
             #endif
@@ -65,16 +64,6 @@ public struct IPAddressField: View {
         case .port: "0"
         }
     }
-
-    #if os(iOS)
-        private var keyboardType: UIKeyboardType {
-            switch filter {
-            case .ipv4: .numbersAndPunctuation
-            case .ipv6: .asciiCapable
-            case .port: .numberPad
-            }
-        }
-    #endif
 
     // MARK: Formatting
 
