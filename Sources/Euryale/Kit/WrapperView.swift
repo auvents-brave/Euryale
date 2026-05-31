@@ -10,21 +10,15 @@ import SwiftUI
     /// - Parameter V: The type of `NSView` to be wrapped.
     struct WrapperView<V: NSView>: NSViewRepresentable {
 
-        // MARK: Properties
-
         typealias NSViewType = V
 
         /// Initialises the wrapper with the specified NSView.
         /// - Parameter view: The NSView instance to embed.
         var view: V
 
-        // MARK: Init
-
         init(view: V) {
             self.view = view
         }
-
-        // MARK: Methods
 
         /// Creates the wrapped NSView.
         /// - Returns: The embedded NSView instance.
@@ -46,19 +40,13 @@ import SwiftUI
     /// - Parameter V: The type of `UIView` to be wrapped.
     struct WrapperView<V: UIView>: UIViewRepresentable {
 
-        // MARK: Properties
-
         /// Initialises the wrapper with the specified UIView.
         /// - Parameter view: The UIView instance to embed.
         var view: V
 
-        // MARK: Init
-
         init(view: V) {
             self.view = view
         }
-
-        // MARK: Methods
 
         /// Creates the wrapped UIView.
         /// - Returns: The embedded UIView instance.

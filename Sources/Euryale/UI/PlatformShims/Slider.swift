@@ -22,7 +22,7 @@
         private let step: Double?
         private let onEditingChanged: (Bool) -> Void
 
-        // MARK: - Initialisers (same signatures as SwiftUI.Slider)
+        // MARK: Initialisers (same signatures as SwiftUI.Slider)
 
         public init(
             value: Binding<Double>,
@@ -62,7 +62,7 @@
             self.onEditingChanged = onEditingChanged
         }
 
-        // MARK: - Body
+        // MARK: Body
 
         public var body: some View {
             ScrollViewReader { proxy in
@@ -96,7 +96,7 @@
             }
         }
 
-        // MARK: - Private helpers
+        // MARK: Private helpers
 
         /// The effective step size: explicit step, or 1/20th of the range.
         private var resolvedStep: Double {
@@ -137,7 +137,7 @@
         }
     }
 
-    // MARK: - Preview
+    // MARK: - Previews
 
     private struct SliderPreviewContainer: View {
         @State private var continuous = 0.4

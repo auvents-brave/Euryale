@@ -17,12 +17,8 @@ public import SwiftUI
 
 public struct BouncingView<T: View>: View {
 
-    // MARK: State
-
     @State private var scale: CGFloat = 1.0
     let content: () -> T
-
-    // MARK: Init
 
     /// Creates a bouncing wrapper around the supplied SwiftUI content.
     ///
@@ -30,8 +26,6 @@ public struct BouncingView<T: View>: View {
     public init(@ViewBuilder content: @escaping () -> T) {
         self.content = content
     }
-
-    // MARK: Body
 
     public var body: some View {
         content()

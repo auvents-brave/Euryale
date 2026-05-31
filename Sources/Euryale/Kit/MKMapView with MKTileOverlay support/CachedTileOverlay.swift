@@ -110,7 +110,7 @@ import MapKit
             }.resume()
         }
 
-        // MARK: - Private helpers
+        // MARK: Private helpers
 
         private func tileFileURL(for path: MKTileOverlayPath) -> URL {
             cacheBaseURL

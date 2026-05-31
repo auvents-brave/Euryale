@@ -132,7 +132,7 @@ public struct PaginatedPill<Page: Identifiable, Content: View>: View {
         )
     }
 
-    // MARK: - Layouts
+    // MARK: Layouts
 
     @ViewBuilder
     private var overlayLayout: some View {
@@ -162,7 +162,7 @@ public struct PaginatedPill<Page: Identifiable, Content: View>: View {
         }
     }
 
-    // MARK: - Page content (cross-fade)
+    // MARK: Page content (cross-fade)
 
     @ViewBuilder
     private var pageStack: some View {
@@ -176,7 +176,7 @@ public struct PaginatedPill<Page: Identifiable, Content: View>: View {
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: currentIndex)
     }
 
-    // MARK: - Indicator dots
+    // MARK: Indicator dots
 
     @ViewBuilder
     private var indicatorRow: some View {
@@ -238,7 +238,7 @@ public struct PaginatedPill<Page: Identifiable, Content: View>: View {
         }
     }
 
-    // MARK: - Swipe gesture
+    // MARK: Swipe gesture
 
     #if !os(tvOS)
     private var swipeGesture: some Gesture {

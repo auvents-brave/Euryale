@@ -20,12 +20,8 @@
     /// ```
     public struct PDFKitView: View {
 
-        // MARK: Properties
-
         var pdfView = PDFView()
         let pdfDocument: PDFDocument
-
-        // MARK: Init
 
         /// Creates a `PDFKitView` for the document at `url`.
         ///
@@ -39,8 +35,6 @@
             pdfView.displayDirection = .vertical
             pdfView.document = pdfDocument
         }
-
-        // MARK: Body
 
         public var body: some View {
             WrapperView(view: pdfView)

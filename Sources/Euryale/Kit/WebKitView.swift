@@ -6,15 +6,11 @@ public import SwiftUI  // View protocol and URL used in public struct members
     /// On tvOS and watchOS, this view displays a placeholder indicating lack of WebKit support.
     public struct WebKitView: View {
 
-        // MARK: Init
-
         /// Creates a non-functional WebKitView for unsupported platforms.
         ///
         /// - Parameter url: The URL that would have been loaded, ignored on unsupported platforms.
         public init(url: URL) {
         }
-
-        // MARK: Body
 
         /// The content and behaviour of the view.
         public var body: some View {
@@ -31,11 +27,7 @@ public import SwiftUI  // View protocol and URL used in public struct members
     /// On iOS, macOS, and compatible platforms, this view loads a URL or string into a WKWebView.
     public struct WebKitView: View {
 
-        // MARK: Properties
-
         var web = WKWebView()
-
-        // MARK: Init
 
         /// Initialises a WebKitView to load the specified URL.
         ///
@@ -50,8 +42,6 @@ public import SwiftUI  // View protocol and URL used in public struct members
         public init(string: String) {
             self.init(url: URL(string: string)!)
         }
-
-        // MARK: Body
 
         /// The content and behaviour of the view.
         public var body: some View {

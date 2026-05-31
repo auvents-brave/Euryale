@@ -78,7 +78,7 @@ public struct SiriTipView<Intent: SiriTipDisplayable>: View {
 }
 #endif
 
-// MARK: - Preview
+// MARK: - Previews
 
 #if DEBUG
 private struct _DemoIntent: SiriTipDisplayable {
