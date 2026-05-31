@@ -66,7 +66,7 @@ if siblingsRoot.lastPathComponent != "checkouts",
 	deps.append(
 		.package(
 			url: "https://github.com/auvents-brave/Stheno",
-			branch: "main",
+			branch: "lab",
 		)
 	)
 }
