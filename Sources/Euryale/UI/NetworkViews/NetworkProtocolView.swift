@@ -14,10 +14,6 @@ public enum NetworkProtocol: String, CaseIterable, Hashable, Identifiable {
     public var isBroadcast: Bool { self == .udpBroadcast }
 }
 
-// The selector view relies on DisclosureGroup / segmented Picker — unavailable on
-// tvOS/watchOS. The `NetworkProtocol` enum above stays available on every platform.
-#if !os(tvOS) && !os(watchOS)
-
 // MARK: - NetworkProtocolView
 
 /// A protocol selector that adapts its presentation to the number of available options.
@@ -96,6 +92,8 @@ public struct NetworkProtocolView: View {
                 }
                 #if os(macOS)
                 .pickerStyle(.radioGroup)
+                #elseif os(watchOS)
+                .pickerStyle(.automatic) // segmented is unavailable on watchOS
                 #else
                 .pickerStyle(.segmented)
                 #endif
@@ -108,7 +106,7 @@ public struct NetworkProtocolView: View {
     // MARK: Bonjour row
 
     private func bonjourRow(_ types: [String]) -> some View {
-        DisclosureGroup(
+        CrossPlatformDisclosure(
             isExpanded: $showBonjour,
             content: {
                 VStack(alignment: .leading, spacing: 4) {
@@ -200,5 +198,3 @@ public struct NetworkProtocolView: View {
         .disabled(disabled)
     }
 }
-
-#endif

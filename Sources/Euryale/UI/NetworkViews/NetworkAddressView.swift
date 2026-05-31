@@ -1,8 +1,6 @@
 public import Stheno
 public import SwiftUI
 
-#if !os(tvOS) && !os(watchOS)
-
 // MARK: - NetworkAddressView
 
 /// An address input that supports IPv4, optional IPv6, and optional domain-name resolution.
@@ -86,7 +84,11 @@ public struct NetworkAddressView: View {
             Text("IPv4").tag(IPAddressField.Filter.ipv4)
             Text("IPv6").tag(IPAddressField.Filter.ipv6)
         }
+        #if os(watchOS)
+        .pickerStyle(.automatic) // segmented is unavailable on watchOS
+        #else
         .pickerStyle(.segmented)
+        #endif
         .onChange(of: ipVersion) { _, _ in address = "" }
     }
 
@@ -101,7 +103,7 @@ public struct NetworkAddressView: View {
     // MARK: Domain name resolver
 
     private var domainRow: some View {
-        DisclosureGroup(
+        CrossPlatformDisclosure(
             isExpanded: $showDomainResolver,
             content: {
                 VStack(alignment: .leading, spacing: 8) {
@@ -201,5 +203,3 @@ public struct NetworkAddressView: View {
         NetworkAddressView(mode: .ipv4IPv6, address: $addr, domainResolver: nil)
     }
 }
-
-#endif
