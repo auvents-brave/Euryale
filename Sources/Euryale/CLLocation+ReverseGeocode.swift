@@ -9,7 +9,12 @@ import MapKit
     import GeoToolbox
 #endif
 
+// MARK: - CLLocation + ReverseGeocode
+
 extension CLLocation {
+
+    // MARK: Public API
+
     /// Returns the name of the location using reverse geocoding.
     ///
     /// On macOS 26+ and iOS 26+, this uses the modern `PlaceDescriptor` API to extract
@@ -66,6 +71,8 @@ extension CLLocation {
             return mark.ocean != nil
         }
     }
+
+    // MARK: Helpers
 
     /// Performs reverse geocoding using the legacy `CLGeocoder` API.
     ///

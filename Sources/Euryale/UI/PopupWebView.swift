@@ -13,11 +13,19 @@ public import SwiftUI
 /// ```swift
 /// PopupWebView(url: URL(string: "https://example.com")!, title: "Example")
 /// ```
+
+// MARK: - PopupWebView
+
 public struct PopupWebView: View {
+
+    // MARK: Properties
+
     @Environment(\.openURL) private var openURL
 
     var url: URL
     var title: String?
+
+    // MARK: Init
 
     /// Creates a popup web-page presenter.
     ///
@@ -30,6 +38,8 @@ public struct PopupWebView: View {
         self.url = url
         self.title = title
     }
+
+    // MARK: Body
 
     public var body: some View {
         #if os(watchOS)
@@ -66,6 +76,8 @@ public struct PopupWebView: View {
         #endif
     }
 }
+
+// MARK: - Previews
 
 #Preview("No title") {
     PopupWebView(url: URL(string: "https://example.com")!)

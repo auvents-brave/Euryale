@@ -12,7 +12,13 @@ import Stheno
  ```
  > Tip: To show the version string on the application's Settings pane, see <doc:DisplayAppVersion>.
  */
+
+// MARK: - Bundle + DisplayName
+
 extension Bundle {
+
+    // MARK: Public API
+
     /// The user-visible application name from Info.plist.
     /// 	This file adds a computed property on `Bundle` that returns the user‑visible
     /// 	application name. It looks up `CFBundleDisplayName` first and falls back to
@@ -62,12 +68,18 @@ extension Bundle {
     }
 }
 
+// MARK: - BundleInfoProviding
+
 internal protocol BundleInfoProviding {
     var infoDictionary: [String: Any]? { get }
     var localizedInfoDictionary: [String: Any]? { get }
 }
 
+// MARK: - Bundle + BundleInfoProviding
+
 extension Bundle: BundleInfoProviding {}
+
+// MARK: - DisplayName
 
 internal struct DisplayName {
     static func getDisplayName(_ bundle: any BundleInfoProviding) -> String {

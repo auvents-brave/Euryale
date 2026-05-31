@@ -6,6 +6,8 @@ import MapKit
     // maximumCacheAge), and FileManager / URLSession are thread-safe by design.
     final class CachedTileOverlay: MKTileOverlay, @unchecked Sendable {
 
+        // MARK: Properties
+
         // URLSession that bypasses URLCache — we manage our own disk cache.
         let session: URLSession
 
@@ -14,6 +16,8 @@ import MapKit
 
         // Resolved once at init time; never recomputed per tile.
         private let cacheBaseURL: URL
+
+        // MARK: Init
 
         /// - Parameters:
         ///   - directory:        Sub-folder name inside the cache location.
@@ -60,6 +64,8 @@ import MapKit
             minimumZ = 9
             canReplaceMapContent = false
         }
+
+        // MARK: Methods
 
         override func loadTile(
             at path: MKTileOverlayPath,

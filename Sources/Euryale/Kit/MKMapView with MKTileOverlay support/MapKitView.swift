@@ -2,14 +2,23 @@ public import MapKit  // MKCoordinateRegion/MKCoordinateSpan used in public memb
 public import SwiftUI
 
 #if os(watchOS)
+    // MARK: - MapViewModel
+
     @Observable class MapViewModel {
+
+        // MARK: Properties
+
         var position: MapCameraPosition
         var span: MKCoordinateSpan
+
+        // MARK: Init
 
         init(initialRegion: MKCoordinateRegion) {
             position = MapCameraPosition.region(initialRegion)
             span = initialRegion.span
         }
+
+        // MARK: Public API
 
         public func setRegion(_ newRegion: MKCoordinateRegion) {
             position = MapCameraPosition.region(newRegion)
@@ -17,8 +26,15 @@ public import SwiftUI
         }
     }
 
+    // MARK: - MapKitView
+
     public struct MapKitView: View {
+
+        // MARK: State
+
         @State var viewModel: MapViewModel
+
+        // MARK: Init
 
         public init() {
             self.init(overlays: [])
@@ -45,9 +61,13 @@ public import SwiftUI
             viewModel = MapViewModel(initialRegion: region)
         }
 
+        // MARK: Public API
+
         public func setRegion(_ newRegion: MKCoordinateRegion) {
             viewModel.setRegion(newRegion)
         }
+
+        // MARK: Body
 
         public var body: some View {
             if #available(watchOS 12, *) {
@@ -61,12 +81,19 @@ public import SwiftUI
         }
     }
 #else
+    // MARK: - MapKitView
+
     /// A SwiftUI view that wraps an MKMapView and supports multiple cached tile overlays.
     public struct MapKitView: View {
+
+        // MARK: Properties
+
         /// The delegate handling MKMapView rendering and events.
         let delegate = MapDelegate()
         /// The underlying MKMapView instance displayed by this view.
         let map = MKMapView()
+
+        // MARK: Init
 
         /// Creates a MapKitView instance without any tile overlays.
         public init() {
@@ -104,9 +131,13 @@ public import SwiftUI
             map.setRegion(initialRegion, animated: false)
         }
 
+        // MARK: Public API
+
         public func setRegion(_ region: MKCoordinateRegion) {
             map.setRegion(region, animated: false)
         }
+
+        // MARK: Body
 
         /// The SwiftUI view that wraps the MKMapView and ignores safe area edges.
         public var body: some View {
@@ -116,6 +147,8 @@ public import SwiftUI
         }
     }
 #endif
+
+// MARK: - Previews
 
 /// Preview showing a plain MapKitView without any overlays.
 @available(watchOS 12, *)

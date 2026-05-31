@@ -13,9 +13,17 @@ public import SwiftUI
 /// ```swift
 /// Pill(label: "Bedrooms", value: 3)
 /// ```
+
+// MARK: - Pill
+
 public struct Pill: View {
+
+    // MARK: Properties
+
     let label: String
     let value: Int
+
+    // MARK: Init
 
     /// Creates a pill.
     /// - Parameters:
@@ -25,6 +33,8 @@ public struct Pill: View {
         self.label = label
         self.value = value
     }
+
+    // MARK: Body
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -53,7 +63,13 @@ public struct Pill: View {
 /// ```swift
 /// PillsView(items: [("Home", 12), ("Bathroom", 2), ("Bedroom", 3)])
 /// ```
+
+// MARK: - PillsView
+
 public struct PillsView: View {
+
+    // MARK: Nested types
+
     /// A single labelled value to be shown by ``PillsView``.
     public struct Item: Identifiable {
         public let id = UUID()
@@ -70,7 +86,11 @@ public struct PillsView: View {
         }
     }
 
+    // MARK: Properties
+
     let items: [Item]
+
+    // MARK: Init
 
     /// Creates a `PillsView` from an explicit ``Item`` array.
     public init(items: [Item]) {
@@ -82,12 +102,16 @@ public struct PillsView: View {
         self.items = items.map { Item(label: $0.0, value: $0.1) }
     }
 
+    // MARK: Helpers
+
     @ViewBuilder
     private func pillItems() -> some View {
         ForEach(items) { item in
             Pill(label: item.label, value: item.value)
         }
     }
+
+    // MARK: Body
 
     #if false
         public var body: some View {
@@ -117,6 +141,8 @@ public struct PillsView: View {
         }
     #endif
 }
+
+// MARK: - Previews
 
 #Preview("Pill") {
     Pill(label: "Bedroom", value: Int.random(in: 1 ... 30))

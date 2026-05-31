@@ -17,10 +17,18 @@
     ///     Text("Title")
     /// }
     /// ```
+
+    // MARK: - DisclosureGroup
+
     public struct DisclosureGroup<Label: View, Content: View>: View {
+
+        // MARK: Properties
+
         @Binding private var isExpanded: Bool
         private let content: () -> Content
         private let label: () -> Label
+
+        // MARK: Init
 
         public init(
             isExpanded: Binding<Bool>,
@@ -31,6 +39,8 @@
             self.content = content
             self.label = label
         }
+
+        // MARK: Body
 
         public var body: some View {
             VStack(alignment: .leading, spacing: 8) {

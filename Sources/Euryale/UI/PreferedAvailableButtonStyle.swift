@@ -1,6 +1,11 @@
 public import SwiftUI
 
+// MARK: - View + PreferredAvailableButtonStyle
+
 extension View {
+
+    // MARK: Public API
+
     /// Applies the most modern button style available on the current platform.
     ///
     /// Resolution order (newest wins):
@@ -34,6 +39,8 @@ extension View {
         }
     }
 
+    // MARK: Methods
+
     @available(macOS 26, macCatalyst 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *)
     func GlassButtonStyle() -> some View {
         #if !os(visionOS)
@@ -63,6 +70,8 @@ extension View {
         #endif
     }
 }
+
+// MARK: - Previews
 
 #if DEBUG
     @MainActor let previewButton = Button {

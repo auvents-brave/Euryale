@@ -13,9 +13,20 @@ public import SwiftUI
 ///     .init(intent: CountThingsIntent(),    isVisible: $showThingsTip)
 /// )
 /// ```
+
+// MARK: - RollingTipView
+
 public struct RollingTipView: View {
+
+    // MARK: Properties
+
     private let items: [SiriTipItem]
+
+    // MARK: State
+
     @State private var selectedIndex: Int?
+
+    // MARK: Init
 
     /// Variadic initialiser — pass items as individual arguments.
     public init(_ items: SiriTipItem...) {
@@ -30,6 +41,8 @@ public struct RollingTipView: View {
     private var visibleIndices: [Int] {
         items.indices.filter { items[$0].isVisible.wrappedValue }
     }
+
+    // MARK: Body
 
     public var body: some View {
         Group {
@@ -47,6 +60,8 @@ public struct RollingTipView: View {
             pickIfNeeded()
         }
     }
+
+    // MARK: Helpers
 
     private func pickIfNeeded() {
         selectedIndex = visibleIndices.randomElement()

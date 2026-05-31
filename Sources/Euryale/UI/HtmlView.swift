@@ -27,10 +27,18 @@ public import SwiftUI
 /// ```swift
 /// HtmlView(forHTML: "Hello <b>World</b> with a <a href=\"https://apple.com\">link</a>.")
 /// ```
+
+// MARK: - HtmlView
+
 public struct HtmlView: View {
+
+    // MARK: Properties
+
     @Environment(\.colorScheme) private var colorScheme
     @ScaledMetric private var bodySize = 17.0
     let forHTML: String
+
+    // MARK: Init
 
     /// Creates an HTML view.
     /// - Parameter forHTML: An HTML fragment or plain text.  Strings with no
@@ -39,10 +47,14 @@ public struct HtmlView: View {
         self.forHTML = forHTML
     }
 
+    // MARK: Body
+
     public var body: some View {
         content
             .accessibilityIdentifier("HtmlView")
     }
+
+    // MARK: Helpers
 
     @ViewBuilder
     private var content: some View {
@@ -85,6 +97,8 @@ public struct HtmlView: View {
         }
     }
 }
+
+// MARK: - Previews
 
 #Preview {
     VStack {

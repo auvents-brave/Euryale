@@ -3,6 +3,8 @@
 
     import PDFKit
 
+    // MARK: - PDFKitView
+
     /// A SwiftUI view that wraps a `PDFView` to display a PDF document with
     /// single-page continuous vertical scrolling and automatic zoom-to-fit.
     ///
@@ -17,8 +19,13 @@
     /// }
     /// ```
     public struct PDFKitView: View {
+
+        // MARK: Properties
+
         var pdfView = PDFView()
         let pdfDocument: PDFDocument
+
+        // MARK: Init
 
         /// Creates a `PDFKitView` for the document at `url`.
         ///
@@ -33,12 +40,16 @@
             pdfView.document = pdfDocument
         }
 
+        // MARK: Body
+
         public var body: some View {
             WrapperView(view: pdfView)
                 .ignoresSafeArea()
                 .accessibilityIdentifier("PDFKitView.pdfView")
         }
     }
+
+    // MARK: - Previews
 
     #Preview {
         PDFKitView(url: URL(string: "https://pressbooks.senecapolytechnic.ca/projectmanagementfundamentals/open/download?type=print_pdf")!)

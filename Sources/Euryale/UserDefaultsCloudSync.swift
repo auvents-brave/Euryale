@@ -15,7 +15,12 @@ public import Foundation  // UserDefaults / NSUbiquitousKeyValueStore used in pu
 /// let sync = UserDefaultsCloudSync(prefix: "prefix")
 /// ```
 /// to synchronise only keys starting with "prefix"
+// MARK: - UserDefaultsCloudSync
+
 public class UserDefaultsCloudSync {
+
+    // MARK: Init
+
     /// Initialises the sync manager.
     /// - Parameters:
     ///   - prefix: The prefix used for filtering. Defaults to `nil` (all keys synced).
@@ -40,6 +45,8 @@ public class UserDefaultsCloudSync {
         ubiquitousStore.synchronize()
     }
 
+    // MARK: Public API
+
     /// Sync from UserDefaults to iCloud
     /// > Instant sync is not guaranteed.
     public func SyncToCloud() {
@@ -51,6 +58,8 @@ public class UserDefaultsCloudSync {
         ubiquitousStore.synchronize()
     }
 
+    // MARK: Methods
+
     /// Sync from iCloud to UserDefaults
     @objc internal func iCloudDidChange(_ notification: Notification) {
         for (key, _) in defaults.dictionaryRepresentation() {
@@ -61,11 +70,15 @@ public class UserDefaultsCloudSync {
         }
     }
 
+    // MARK: Properties
+
     /// An optional prefix used to filter which UserDefaults keys are included in sync operations. Only keys starting with this prefix will be synced; if nil, all keys are synced.
     private let prefix: String?
 
     private let ubiquitousStore: NSUbiquitousKeyValueStore
     private let defaults: UserDefaults
+
+    // MARK: Helpers
 
     private func IsSyncable(_ key: String) -> Bool {
         return (prefix != nil) ? key.hasPrefix(prefix!) : true

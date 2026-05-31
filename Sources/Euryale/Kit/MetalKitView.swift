@@ -2,6 +2,8 @@
     import MetalKit
     public import SwiftUI
 
+    // MARK: - MetalKitView
+
     /// A SwiftUI view that renders a Metal shader inside an `MTKView`.
     ///
     /// The shader source is passed as a Metal Shading Language string and is
@@ -16,6 +18,9 @@
     /// MetalKitView(source: shaderSource, rendererKind: .mountains)
     /// ```
     public struct MetalKitView: View {
+
+        // MARK: Nested types
+
         /// Selects the built-in renderer pipeline used to drive the Metal view.
         public enum RendererKind {
             /// Default time-and-resolution uniforms pipeline.
@@ -24,10 +29,14 @@
             case mountains
         }
 
+        // MARK: Properties
+
         let source: String
         let rendererKind: RendererKind
         let mtkView = MTKView()
         let coordinator = makeCoordinator()
+
+        // MARK: Init
 
         /// Creates a `MetalKitView` with the given shader source.
         ///
@@ -38,6 +47,8 @@
             self.source = source
             self.rendererKind = rendererKind
         }
+
+        // MARK: Body
 
         public var body: some View {
             WrapperView(view: mtkView)
@@ -62,6 +73,8 @@
                 }
         }
 
+        // MARK: Helpers
+
         private func makeRenderer() -> (any MTKViewDelegate)? {
             switch rendererKind {
             case .generic:
@@ -72,14 +85,21 @@
         }
 
         static func makeCoordinator() -> Coordinator { Coordinator() }
+
+        // MARK: Coordinator
+
         final class Coordinator {
             var renderer: (any MTKViewDelegate)?
         }
     }
 
+    // MARK: - Uniforms
+
     fileprivate struct Uniforms {
         var time: Float
     }
+
+    // MARK: - MountainsUniforms
 
     fileprivate struct MountainsUniforms {
         var resolution: SIMD2<Float>
@@ -87,17 +107,25 @@
         var padding: Float = 0
     }
 
+    // MARK: - MountainsVertex
+
     fileprivate struct MountainsVertex {
         var position: SIMD2<Float>
         var uv: SIMD2<Float>
     }
 
+    // MARK: - Renderer
+
     @MainActor
     final class Renderer: NSObject, MTKViewDelegate {
+
+        // MARK: Properties
         private let device: any MTLDevice
         private let pipelineState: any MTLRenderPipelineState
         private var commandQueue: any MTLCommandQueue
         private var startTime: CFAbsoluteTime
+
+        // MARK: Init
 
         init?(mtkView: MTKView, source: String) {
             guard let device = mtkView.device else { return nil }
@@ -125,6 +153,8 @@
             }
             super.init()
         }
+
+        // MARK: Methods
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
         }
@@ -155,12 +185,19 @@
         }
     }
 
+    // MARK: - MountainsRenderer
+
     @MainActor
     final class MountainsRenderer: NSObject, MTKViewDelegate {
+
+        // MARK: Properties
+
         private let pipelineState: any MTLRenderPipelineState
         private let commandQueue: any MTLCommandQueue
         private let vertexBuffer: any MTLBuffer
         private let startTime: CFAbsoluteTime
+
+        // MARK: Init
 
         init?(mtkView: MTKView, source: String) {
             guard let device = mtkView.device,
@@ -206,6 +243,8 @@
             startTime = CFAbsoluteTimeGetCurrent()
             super.init()
         }
+
+        // MARK: Methods
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
         }
@@ -484,6 +523,8 @@
         }
         """
     #endif
+
+    // MARK: - Previews
 
     #Preview("Sea") {
         MetalKitView(source: seaShaderSource)

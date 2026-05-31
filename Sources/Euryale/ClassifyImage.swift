@@ -2,6 +2,8 @@ public import CoreGraphics  // CGImage used in public function return type
 public import Foundation
 import ImageIO
 
+// MARK: - Image classification
+
 #if !os(watchOS)
     import Vision
 
@@ -58,11 +60,15 @@ import ImageIO
     }
 #endif
 
+// MARK: - ImageLoadingError
+
 /// Errors that can occur while loading an image from a URL.
 public enum ImageLoadingError: Error {
     case cannotCreateImageSource
     case cannotCreateCGImage
 }
+
+// MARK: - Image loading
 
 /// Loads a CGImage from a URL. Supports both local file URLs and remote (e.g., https) URLs.
 /// - Parameter url: The URL of the image. Can be a file URL or a remote URL.

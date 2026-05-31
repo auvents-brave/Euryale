@@ -18,7 +18,13 @@ public import SwiftUI
 ///                 urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png")]
 /// )
 /// ```
+
+// MARK: - PopupMapView
+
 public struct PopupMapView: View {
+
+    // MARK: Properties
+
     var region: MKCoordinateRegion
     var title: String?
     var annotationTitle: String?
@@ -34,6 +40,9 @@ public struct PopupMapView: View {
     ///     map and used as the `MKMapItem` name (falls back to `title`).
     ///   - overlays: Optional cached XYZ/TMS tile overlays stacked on top of
     ///     the Apple Maps base layer — see ``MapKitView``.
+
+    // MARK: Init
+
     public init(
         region: MKCoordinateRegion,
         title: String? = nil,
@@ -45,6 +54,8 @@ public struct PopupMapView: View {
         self.annotationTitle = annotationTitle
         self.overlays = overlays
     }
+
+    // MARK: Body
 
     public var body: some View {
         #if os(watchOS)
@@ -86,6 +97,8 @@ public struct PopupMapView: View {
         #endif
     }
 
+    // MARK: Helpers
+
     private func mapItem(for coordinate: CLLocationCoordinate2D, title: String?) -> MKMapItem {
         let item = MKMapItem(placemark: MKPlacemark(coordinate: coordinate))
         if let title, !title.isEmpty {
@@ -94,6 +107,8 @@ public struct PopupMapView: View {
         return item
     }
 }
+
+// MARK: - Previews
 
 #Preview("No title") {
     PopupMapView(

@@ -1,6 +1,8 @@
 #if !os(watchOS)
     import MapKit
 
+    // MARK: - MapDelegate
+
     /// MKMapViewDelegate implementation for rendering MKTileOverlay objects.
     /// Use this delegate to customise map overlay rendering in a cross-platform manner.
     class MapDelegate: OSDelegate, MKMapViewDelegate {

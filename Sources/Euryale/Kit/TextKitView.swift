@@ -3,6 +3,8 @@
     public import SwiftUI
     import UIKit
 
+    // MARK: - TextKitView
+
     /// A SwiftUI view backed by the native platform rich-text view
     /// (`UITextView` on UIKit platforms, `NSTextView` on macOS) for
     /// displaying attributed text and HTML content with scrolling,
@@ -17,7 +19,12 @@
     /// view.setHTML("<h2>Hello</h2><p>This is <b>HTML</b>.</p>")
     /// ```
     public struct TextKitView: View {
+
+        // MARK: Properties
+
         var textView = UITextView()
+
+        // MARK: Init
 
         /// Creates an empty `TextKitView`.  Populate it afterwards by calling
         /// ``setHTML(_:)`` with the markup to display.
@@ -25,11 +32,15 @@
             textView = UITextView()
         }
 
+        // MARK: Body
+
         public var body: some View {
             WrapperView(view: textView)
                 .ignoresSafeArea()
                 .accessibilityIdentifier("TextKitView.textView")
         }
+
+        // MARK: Public API
 
         /// Renders the given HTML string into the wrapped `UITextView`.
         ///
@@ -70,6 +81,8 @@
     public import SwiftUI
     import AppKit
 
+    // MARK: - TextKitView
+
     /// A SwiftUI view backed by the native platform rich-text view
     /// (`UITextView` on UIKit platforms, `NSTextView` on macOS) for
     /// displaying attributed text and HTML content with scrolling,
@@ -84,8 +97,13 @@
     /// view.setHTML("<h2>Hello</h2><p>This is <b>HTML</b>.</p>")
     /// ```
     public struct TextKitView: View {
+
+        // MARK: Properties
+
         let scrollView: NSScrollView
         let textView: NSTextView
+
+        // MARK: Init
 
         /// Creates an empty `TextKitView`.  Populate it afterwards by calling
         /// ``setHTML(_:)`` with the markup to display.
@@ -112,11 +130,15 @@
             self.textView = tv
         }
 
+        // MARK: Body
+
         public var body: some View {
             WrapperView(view: scrollView)
                 .ignoresSafeArea()
                 .accessibilityIdentifier("TextKitView.textView")
         }
+
+        // MARK: Public API
 
         /// Renders the given HTML string into the wrapped `NSTextView`.
         ///
@@ -152,6 +174,8 @@
 #else
     import SwiftUI  // needed for #Preview on watchOS
 #endif
+
+// MARK: - Previews
 
 #Preview("HTML") {
     #if !os(watchOS)

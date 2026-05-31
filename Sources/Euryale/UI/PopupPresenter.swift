@@ -14,7 +14,13 @@ public import SwiftUI
 ///     DetailView()
 /// }
 /// ```
+
+// MARK: - PopupPresenter
+
 public struct PopupPresenter<Trigger: View, PresentedContent: View>: View {
+
+    // MARK: Properties
+
 #if os(iOS)
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 #endif
@@ -36,6 +42,9 @@ public struct PopupPresenter<Trigger: View, PresentedContent: View>: View {
     ///     Defaults to 900 on visionOS and 500 elsewhere.
     ///   - trigger: A view builder for the tappable trigger view.
     ///   - presentedContent: A view builder for the popup body.
+
+    // MARK: Init
+
     public init(
         regularWidth: CGFloat? = nil,
         regularHeight: CGFloat? = nil,
@@ -47,6 +56,8 @@ public struct PopupPresenter<Trigger: View, PresentedContent: View>: View {
         self.trigger = trigger
         self.presentedContent = presentedContent
     }
+
+	// MARK: Body
 
 	public var body: some View {
 		Button {
@@ -70,6 +81,8 @@ public struct PopupPresenter<Trigger: View, PresentedContent: View>: View {
 			)
 		)
 	}
+
+	// MARK: Helpers
 
 	@ViewBuilder
 	private var popupBody: some View {
@@ -109,6 +122,8 @@ public struct PopupPresenter<Trigger: View, PresentedContent: View>: View {
 #endif
 	}
 }
+
+// MARK: - PopupPresentationModifier
 
 private struct PopupPresentationModifier<PopupContent: View>: ViewModifier {
 	@Binding var isPresented: Bool

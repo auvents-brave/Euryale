@@ -17,7 +17,13 @@ public import SwiftUI
 /// ```
 ///
 /// For a label-and-integer-value badge (no status), see ``Pill``.
+
+// MARK: - StatusPill
+
 public struct StatusPill: View {
+
+    // MARK: Nested types
+
     /// The semantic level a ``StatusPill`` conveys.
     ///
     /// Each case maps to an SF Symbol and a tint colour:
@@ -62,8 +68,12 @@ public struct StatusPill: View {
         }
     }
 
+    // MARK: Properties
+
     let label: String
     let status: Status
+
+    // MARK: Init
 
     /// Creates a status pill.
     /// - Parameters:
@@ -73,6 +83,8 @@ public struct StatusPill: View {
         self.label = label
         self.status = status
     }
+
+    // MARK: Body
 
     public var body: some View {
         HStack(spacing: 6) {
@@ -88,6 +100,8 @@ public struct StatusPill: View {
         .accessibilityIdentifier("StatusPill")
     }
 }
+
+// MARK: - Previews
 
 #Preview("StatusPill") {
     VStack(spacing: 8) {
