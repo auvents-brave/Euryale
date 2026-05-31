@@ -142,17 +142,19 @@ public struct NetworkProtocolView: View {
 
 // MARK: - Previews
 
-#Preview("TCP only") {
+#Preview("TCP + Port") {
     @Previewable @State var proto = NetworkProtocol.tcp
+    @Previewable @State var addr = "192.168.1.1"
+    @Previewable @State var port = "8080"
     @Previewable @State var disabled = false
     Form {
         NetworkProtocolView(available: [.tcp], selection: $proto, addressDisabled: $disabled)
-        NetworkAddressView(address: .constant("192.168.1.1"))
+        NetworkAddressView(address: $addr, port: $port)
             .disabled(disabled)
     }
 }
 
-#Preview("TCP + UDP Broadcast — IPv4 / IPv6") {
+#Preview("TCP + UDP Broadcast — no port") {
     @Previewable @State var proto = NetworkProtocol.tcp
     @Previewable @State var addr = ""
     @Previewable @State var disabled = false
@@ -163,9 +165,10 @@ public struct NetworkProtocolView: View {
     }
 }
 
-#Preview("Full — TCP / Broadcast / Multicast + Bonjour") {
+#Preview("Full — Protocols + Bonjour + Port") {
     @Previewable @State var proto = NetworkProtocol.tcp
     @Previewable @State var addr = ""
+    @Previewable @State var port = ""
     @Previewable @State var disabled = false
     @Previewable @State var bonjourType: String? = nil
     Form {
@@ -176,20 +179,22 @@ public struct NetworkProtocolView: View {
             bonjourServiceTypes: ["_http._tcp", "_nmea._tcp", "_signalk._tcp"],
             selectedBonjourType: $bonjourType
         )
-        NetworkAddressView(mode: .ipv4IPv6, address: $addr)
+        NetworkAddressView(mode: .ipv4IPv6, address: $addr, port: $port)
             .disabled(disabled)
     }
 }
 
-#Preview("Full + Domain Name") {
+#Preview("Domain Name + Port") {
     @Previewable @State var proto = NetworkProtocol.tcp
     @Previewable @State var addr = ""
+    @Previewable @State var port = ""
     @Previewable @State var disabled = false
     Form {
         NetworkProtocolView(available: [.tcp, .udpMulticast], selection: $proto, addressDisabled: $disabled)
         NetworkAddressView(
             mode: .ipv4IPv6,
             address: $addr,
+            port: $port,
             domainResolver: { _ in
                 try await Task.sleep(for: .milliseconds(800))
                 return ["93.184.216.34"]
