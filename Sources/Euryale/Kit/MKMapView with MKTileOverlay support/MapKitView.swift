@@ -1,4 +1,4 @@
-public import MapKit  // MKCoordinateRegion/MKCoordinateSpan used in public members
+public import MapKit
 public import SwiftUI
 
 #if os(watchOS)

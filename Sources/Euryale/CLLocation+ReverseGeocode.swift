@@ -1,5 +1,5 @@
 import Logging
-public import CoreLocation  // CLLocation used in public extension members
+public import CoreLocation
 import MapKit
 #if canImport(Playgrounds)
     import Playgrounds

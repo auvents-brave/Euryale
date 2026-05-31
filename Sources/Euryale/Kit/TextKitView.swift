@@ -1,9 +1,8 @@
 #if !os(macOS) && !os(watchOS)
-    // UIKit branch — UITextView is available on iOS / iPadOS / tvOS / Catalyst / visionOS.
     public import SwiftUI
     import UIKit
 
-    // MARK: - TextKitView
+    // MARK: - TextKitView (UIKit — UITextView on iOS / iPadOS / tvOS / Catalyst / visionOS)
 
     /// A SwiftUI view backed by the native platform rich-text view
     /// (`UITextView` on UIKit platforms, `NSTextView` on macOS) for
@@ -77,11 +76,10 @@
         }
     }
 #elseif os(macOS)
-    // AppKit branch — NSTextView wrapped in an NSScrollView for native scrolling.
     public import SwiftUI
     import AppKit
 
-    // MARK: - TextKitView
+    // MARK: - TextKitView (AppKit — NSTextView wrapped in an NSScrollView)
 
     /// A SwiftUI view backed by the native platform rich-text view
     /// (`UITextView` on UIKit platforms, `NSTextView` on macOS) for

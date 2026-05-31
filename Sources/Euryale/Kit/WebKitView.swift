@@ -1,4 +1,4 @@
-public import SwiftUI  // View protocol and URL used in public struct members
+public import SwiftUI
 
 #if os(tvOS) || os(watchOS)
     // MARK: - WebKitView

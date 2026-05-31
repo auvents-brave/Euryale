@@ -1,9 +1,6 @@
 import MapKit
 
 #if !os(watchOS)
-    // @unchecked Sendable: MKTileOverlay (NSObject) doesn't declare Sendable, but all
-    // stored properties of this subclass are immutable after init (session, cacheBaseURL,
-    // maximumCacheAge), and FileManager / URLSession are thread-safe by design.
     final class CachedTileOverlay: MKTileOverlay, @unchecked Sendable {
 
         // MARK: Properties

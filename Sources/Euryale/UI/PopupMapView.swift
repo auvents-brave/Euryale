@@ -1,4 +1,4 @@
-public import MapKit  // MKCoordinateRegion used in public init parameter
+public import MapKit
 public import SwiftUI
 
 // MARK: - PopupMapView
