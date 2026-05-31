@@ -109,7 +109,7 @@ public struct NetworkAddressView: View {
     // MARK: Domain name resolver
 
     private var domainRow: some View {
-        CrossPlatformDisclosure(
+        DisclosureGroup(
             isExpanded: $showDomainResolver,
             content: {
                 VStack(alignment: .leading, spacing: 8) {

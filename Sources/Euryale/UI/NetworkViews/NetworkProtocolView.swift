@@ -106,7 +106,7 @@ public struct NetworkProtocolView: View {
     // MARK: Bonjour row
 
     private func bonjourRow(_ types: [String]) -> some View {
-        CrossPlatformDisclosure(
+        DisclosureGroup(
             isExpanded: $showBonjour,
             content: {
                 VStack(alignment: .leading, spacing: 4) {
