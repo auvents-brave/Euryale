@@ -1,5 +1,7 @@
 public import SwiftUI
 
+// MARK: - RollingTipView
+
 /// Displays one randomly chosen Siri tip from a list, rotating to a new one
 /// whenever the current tip is dismissed.
 ///
@@ -13,9 +15,6 @@ public import SwiftUI
 ///     .init(intent: CountThingsIntent(),    isVisible: $showThingsTip)
 /// )
 /// ```
-
-// MARK: - RollingTipView
-
 public struct RollingTipView: View {
 
     private let items: [SiriTipItem]

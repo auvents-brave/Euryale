@@ -1,6 +1,8 @@
 #if os(tvOS) || os(watchOS)
     public import SwiftUI
 
+    // MARK: - DisclosureGroup
+
     /// A tvOS / watchOS replacement for SwiftUI's `DisclosureGroup`.
     ///
     /// On tvOS and watchOS the standard `DisclosureGroup` is unavailable. This view
@@ -17,9 +19,6 @@
     ///     Text("Title")
     /// }
     /// ```
-
-    // MARK: - DisclosureGroup
-
     public struct DisclosureGroup<Label: View, Content: View>: View {
 
         @Binding private var isExpanded: Bool

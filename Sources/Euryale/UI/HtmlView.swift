@@ -1,6 +1,8 @@
 import Logging
 public import SwiftUI
 
+// MARK: - HtmlView
+
 /// Lightweight cross-platform HTML-to-`Text` renderer.
 ///
 /// `HtmlView` is intended for **short, inline HTML fragments** — a paragraph
@@ -27,9 +29,6 @@ public import SwiftUI
 /// ```swift
 /// HtmlView(forHTML: "Hello <b>World</b> with a <a href=\"https://apple.com\">link</a>.")
 /// ```
-
-// MARK: - HtmlView
-
 public struct HtmlView: View {
 
     // MARK: Properties

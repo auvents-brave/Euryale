@@ -3,6 +3,8 @@ public import SwiftUI
     import WebKit
 #endif
 
+// MARK: - PopupWebView
+
 /// A SwiftUI button that opens an embedded ``WebKitView`` in a popover, with
 /// an additional "Open in Browser" button to escape to the user's default
 /// browser via the SwiftUI `openURL` environment action.
@@ -13,9 +15,6 @@ public import SwiftUI
 /// ```swift
 /// PopupWebView(url: URL(string: "https://example.com")!, title: "Example")
 /// ```
-
-// MARK: - PopupWebView
-
 public struct PopupWebView: View {
 
     // MARK: Properties

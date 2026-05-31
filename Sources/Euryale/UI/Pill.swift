@@ -1,5 +1,7 @@
 public import SwiftUI
 
+// MARK: - Pill
+
 /// A small SwiftUI badge displaying a caption above an integer value.
 ///
 /// `Pill` is a compact summary tile.  The label appears in the caption font as
@@ -13,9 +15,6 @@ public import SwiftUI
 /// ```swift
 /// Pill(label: "Bedrooms", value: 3)
 /// ```
-
-// MARK: - Pill
-
 public struct Pill: View {
 
     // MARK: Properties
@@ -53,6 +52,8 @@ public struct Pill: View {
     }
 }
 
+// MARK: - PillsView
+
 /// A SwiftUI container that arranges a list of ``Pill`` views horizontally
 /// when the available width allows it, otherwise stacks them vertically.
 ///
@@ -63,9 +64,6 @@ public struct Pill: View {
 /// ```swift
 /// PillsView(items: [("Home", 12), ("Bathroom", 2), ("Bedroom", 3)])
 /// ```
-
-// MARK: - PillsView
-
 public struct PillsView: View {
 
     // MARK: Nested types

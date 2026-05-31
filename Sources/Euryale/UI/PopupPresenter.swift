@@ -1,5 +1,7 @@
 public import SwiftUI
 
+// MARK: - PopupPresenter
+
 /// A SwiftUI presenter that shows arbitrary content in a popover (regular size
 /// class) or a sheet (compact / tvOS / watchOS), driven by a tap on a custom
 /// `trigger` view.
@@ -14,9 +16,6 @@ public import SwiftUI
 ///     DetailView()
 /// }
 /// ```
-
-// MARK: - PopupPresenter
-
 public struct PopupPresenter<Trigger: View, PresentedContent: View>: View {
 
     // MARK: Properties
@@ -32,6 +31,8 @@ public struct PopupPresenter<Trigger: View, PresentedContent: View>: View {
     private let trigger: () -> Trigger
     private let presentedContent: () -> PresentedContent
 
+    // MARK: Init
+
     /// Creates a popup presenter.
     ///
     /// - Parameters:
@@ -42,9 +43,6 @@ public struct PopupPresenter<Trigger: View, PresentedContent: View>: View {
     ///     Defaults to 900 on visionOS and 500 elsewhere.
     ///   - trigger: A view builder for the tappable trigger view.
     ///   - presentedContent: A view builder for the popup body.
-
-    // MARK: Init
-
     public init(
         regularWidth: CGFloat? = nil,
         regularHeight: CGFloat? = nil,

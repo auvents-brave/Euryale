@@ -1,4 +1,4 @@
-public import CoreGraphics  // CGImage used in public function return type
+public import CoreGraphics
 public import Foundation
 import ImageIO
 

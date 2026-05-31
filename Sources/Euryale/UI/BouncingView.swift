@@ -1,5 +1,7 @@
 public import SwiftUI
 
+// MARK: - BouncingView
+
 /// A SwiftUI view modifier that gives its content a tap-to-bounce micro-animation.
 ///
 /// On tap the content briefly scales down to 80 % then springs back to its
@@ -12,9 +14,6 @@ public import SwiftUI
 ///     Button("Tap me") { … }
 /// }
 /// ```
-
-// MARK: - BouncingView
-
 public struct BouncingView<T: View>: View {
 
     @State private var scale: CGFloat = 1.0

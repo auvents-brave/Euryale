@@ -1,6 +1,8 @@
 public import MapKit  // MKCoordinateRegion used in public init parameter
 public import SwiftUI
 
+// MARK: - PopupMapView
+
 /// A SwiftUI button that opens an embedded ``MapKitView`` in a popover, with
 /// an additional "Open in Maps" button to launch the system Maps app at the
 /// same coordinate.
@@ -18,9 +20,6 @@ public import SwiftUI
 ///                 urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png")]
 /// )
 /// ```
-
-// MARK: - PopupMapView
-
 public struct PopupMapView: View {
 
     // MARK: Properties
@@ -29,6 +28,8 @@ public struct PopupMapView: View {
     var title: String?
     var annotationTitle: String?
     var overlays: [(cacheDirectory: String, urlTemplate: String)] = []
+
+    // MARK: Init
 
     /// Creates a popup map presenter.
     ///
@@ -40,9 +41,6 @@ public struct PopupMapView: View {
     ///     map and used as the `MKMapItem` name (falls back to `title`).
     ///   - overlays: Optional cached XYZ/TMS tile overlays stacked on top of
     ///     the Apple Maps base layer — see ``MapKitView``.
-
-    // MARK: Init
-
     public init(
         region: MKCoordinateRegion,
         title: String? = nil,

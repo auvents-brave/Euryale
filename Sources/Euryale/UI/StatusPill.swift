@@ -1,5 +1,7 @@
 public import SwiftUI
 
+// MARK: - StatusPill
+
 /// A small SwiftUI badge that pairs an SF Symbol with a short label, tinted
 /// according to a semantic status (OK / warning / error).
 ///
@@ -17,9 +19,6 @@ public import SwiftUI
 /// ```
 ///
 /// For a label-and-integer-value badge (no status), see ``Pill``.
-
-// MARK: - StatusPill
-
 public struct StatusPill: View {
 
     // MARK: Nested types
