@@ -70,7 +70,6 @@ public struct PopupMapView: View {
                     ZStack(alignment: .bottomTrailing) {
                         MapKitView(initialRegion: region, overlays: overlays)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .padding(.bottom, 70)
 
                         #if !os(tvOS)
                             Button {
@@ -84,7 +83,7 @@ public struct PopupMapView: View {
                                 }
                             }
                             .padding(.trailing, 20)
-                            .padding(.bottom, 100)
+                            .padding(.bottom, 20)
                             .PreferredAvailableButtonStyle()
                             .accessibilityIdentifier("PopupMapView.openInMaps")
                         #endif
