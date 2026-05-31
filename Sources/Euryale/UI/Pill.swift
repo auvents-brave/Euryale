@@ -20,6 +20,7 @@ public struct Pill: View {
     // MARK: Properties
 
     let label: String
+    let systemImage: String?
     let value: Int
 
     // MARK: Init
@@ -27,9 +28,11 @@ public struct Pill: View {
     /// Creates a pill.
     /// - Parameters:
     ///   - label: Caption shown above the value.
+    ///   - systemImage: Optional SF Symbol shown alongside the caption.
     ///   - value: Integer displayed in the headline font.
-    public init(label: String, value: Int) {
+    public init(label: String, systemImage: String? = nil, value: Int) {
         self.label = label
+        self.systemImage = systemImage
         self.value = value
     }
 
@@ -37,9 +40,15 @@ public struct Pill: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            Group {
+                if let systemImage {
+                    Label(label, systemImage: systemImage)
+                } else {
+                    Text(label)
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
             Text("\(value)")
                 .font(.headline)
                 .monospacedDigit()
@@ -72,14 +81,17 @@ public struct PillsView: View {
     public struct Item: Identifiable {
         public let id = UUID()
         let label: String
+        let systemImage: String?
         let value: Int
 
         /// Creates an item.
         /// - Parameters:
         ///   - label: Caption text for the pill.
+        ///   - systemImage: Optional SF Symbol shown alongside the caption.
         ///   - value: Integer value shown by the pill.
-        public init(label: String, value: Int) {
+        public init(label: String, systemImage: String? = nil, value: Int) {
             self.label = label
+            self.systemImage = systemImage
             self.value = value
         }
     }
@@ -105,7 +117,7 @@ public struct PillsView: View {
     @ViewBuilder
     private func pillItems() -> some View {
         ForEach(items) { item in
-            Pill(label: item.label, value: item.value)
+            Pill(label: item.label, systemImage: item.systemImage, value: item.value)
         }
     }
 

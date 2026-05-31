@@ -64,7 +64,7 @@ public struct PopupWebView: View {
                                 }
                             }
                             .padding(.trailing, 20)
-                            .padding(.bottom, 100)
+                            .padding(.bottom, 20)
                             .PreferredAvailableButtonStyle()
                             .accessibilityIdentifier("PopupWebView.openInBrowser")
                         #endif
