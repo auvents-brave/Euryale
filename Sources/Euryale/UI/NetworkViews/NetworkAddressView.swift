@@ -31,6 +31,10 @@ public struct NetworkAddressView: View {
     /// Optional port binding. When provided a **Port** row is shown.
     private let port: Binding<String>?
 
+    /// When `true`, the address and domain fields are disabled but the **port stays active** —
+    /// e.g. UDP broadcast, which targets the whole subnet yet still needs a port.
+    private let addressDisabled: Bool
+
     /// Async closure resolving a hostname to IP address strings.
     /// Defaults to Stheno's ``DomainResolver/resolve(_:)``; pass `nil` to hide the domain-name row.
     private let domainResolver: ((String) async throws -> [String])?
@@ -47,11 +51,13 @@ public struct NetworkAddressView: View {
         mode: Mode = .ipv4Only,
         address: Binding<String>,
         port: Binding<String>? = nil,
+        addressDisabled: Bool = false,
         domainResolver: ((String) async throws -> [String])? = DomainResolver.resolve
     ) {
         self.mode = mode
         _address = address
         self.port = port
+        self.addressDisabled = addressDisabled
         self.domainResolver = domainResolver
     }
 
@@ -60,10 +66,10 @@ public struct NetworkAddressView: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if mode == .ipv4IPv6 {
-                versionPicker
+                versionPicker.disabled(addressDisabled)
             }
 
-            addressRow
+            addressRow.disabled(addressDisabled)
 
             if let port {
                 LabeledContent("Port") {
@@ -72,7 +78,7 @@ public struct NetworkAddressView: View {
             }
 
             if domainResolver != nil {
-                domainRow
+                domainRow.disabled(addressDisabled)
             }
         }
     }

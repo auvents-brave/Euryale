@@ -149,19 +149,18 @@ public struct NetworkProtocolView: View {
     @Previewable @State var disabled = false
     Form {
         NetworkProtocolView(available: [.tcp], selection: $proto, addressDisabled: $disabled)
-        NetworkAddressView(address: $addr, port: $port)
-            .disabled(disabled)
+        NetworkAddressView(address: $addr, port: $port, addressDisabled: disabled)
     }
 }
 
-#Preview("TCP + UDP Broadcast — no port") {
-    @Previewable @State var proto = NetworkProtocol.tcp
+#Preview("UDP Broadcast — address off, port on") {
+    @Previewable @State var proto = NetworkProtocol.udpBroadcast
     @Previewable @State var addr = ""
+    @Previewable @State var port = "2000"
     @Previewable @State var disabled = false
     Form {
         NetworkProtocolView(available: [.tcp, .udpBroadcast], selection: $proto, addressDisabled: $disabled)
-        NetworkAddressView(mode: .ipv4IPv6, address: $addr)
-            .disabled(disabled)
+        NetworkAddressView(mode: .ipv4IPv6, address: $addr, port: $port, addressDisabled: disabled)
     }
 }
 
@@ -179,8 +178,7 @@ public struct NetworkProtocolView: View {
             bonjourServiceTypes: ["_http._tcp", "_nmea._tcp", "_signalk._tcp"],
             selectedBonjourType: $bonjourType
         )
-        NetworkAddressView(mode: .ipv4IPv6, address: $addr, port: $port)
-            .disabled(disabled)
+        NetworkAddressView(mode: .ipv4IPv6, address: $addr, port: $port, addressDisabled: disabled)
     }
 }
 
@@ -195,11 +193,11 @@ public struct NetworkProtocolView: View {
             mode: .ipv4IPv6,
             address: $addr,
             port: $port,
+            addressDisabled: disabled,
             domainResolver: { _ in
                 try await Task.sleep(for: .milliseconds(800))
                 return ["93.184.216.34"]
             }
         )
-        .disabled(disabled)
     }
 }
