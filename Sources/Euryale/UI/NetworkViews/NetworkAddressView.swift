@@ -127,6 +127,10 @@ public struct NetworkAddressView: View {
                                 Text("Resolve")
                             }
                         }
+                        // Explicit style so the tap is captured here and not
+                        // propagated to the enclosing DisclosureGroup row (which
+                        // would toggle it closed).
+                        .buttonStyle(.borderless)
                         .disabled(domainName.isEmpty || isResolving)
                     }
 
