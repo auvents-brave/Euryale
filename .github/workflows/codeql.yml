@@ -1,0 +1,93 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main, lab]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '27 4 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.repository }}-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SWIFT_VERSION: "6.3.2"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ${{ matrix.runner }}
+
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+            build-mode: none
+            runner: ubuntu-latest
+          - language: swift
+            build-mode: manual
+            runner: macos-26
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        if: matrix.language == 'swift'
+        with:
+          xcode-version: "26.5"
+
+      - name: Install Swiftly
+        if: matrix.language == 'swift'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L "https://download.swift.org/swiftly/darwin/swiftly.pkg" -o swiftly.pkg
+          installer -pkg swiftly.pkg -target CurrentUserHomeDirectory
+          ~/.swiftly/bin/swiftly init --assume-yes --skip-install
+          . "${SWIFTLY_HOME_DIR:-$HOME/.swiftly}/env.sh"
+          hash -r
+          echo "${SWIFTLY_BIN_DIR}" >> "$GITHUB_PATH"
+          swiftly install "${{ env.SWIFT_VERSION }}" --post-install-file=post-install.sh
+          if [ -f post-install.sh ]; then
+            . ./post-install.sh
+          fi
+          swiftly use "${{ env.SWIFT_VERSION }}"
+
+      - name: Check Swift Version
+        if: matrix.language == 'swift'
+        run: swift --version
+
+      - name: Assert stable Swift toolchain
+        if: matrix.language == 'swift'
+        run: |
+          SWIFT_VERSION="$(swift --version)"
+          if printf '%s\n' "$SWIFT_VERSION" | grep -q 'DEVELOPMENT-SNAPSHOT'; then
+            echo 'Unexpected development snapshot toolchain'
+            exit 1
+          fi
+
+      - name: Build Swift package (manual)
+        if: matrix.language == 'swift'
+        run: swift build -Xswiftc -DNO_PLAYGROUND_EXAMPLES
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"
