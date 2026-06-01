@@ -3,10 +3,10 @@
 
     /// A tvOS replacement for SwiftUI's `Slider`.
     ///
-    /// On tvOS the standard `Slider` is unavailable.  This view presents the
-    /// available values as a scrollable `List` that the user navigates with the
-    /// Siri Remote D-pad.  The currently selected row is marked with a checkmark
-    /// and the list scrolls to it automatically when the view appears.
+    /// On tvOS the standard `Slider` is unavailable.  This shim behaves like a
+    /// real slider: a focusable track (a `ProgressView` flanked by chevrons) that
+    /// the user nudges left/right with the Siri Remote.  It shows no numeric
+    /// labels, so callers remain free to present the value however they like.
     ///
     /// The public API is intentionally identical to SwiftUI's `Slider` so that
     /// call sites require no platform guards:
@@ -21,6 +21,8 @@
         private let bounds: ClosedRange<Double>
         private let step: Double?
         private let onEditingChanged: (Bool) -> Void
+
+        @FocusState private var isFocused: Bool
 
         // MARK: Initialisers (same signatures as SwiftUI.Slider)
 
@@ -65,35 +67,41 @@
         // MARK: Body
 
         public var body: some View {
-            ScrollViewReader { proxy in
-                List {
-                    ForEach(steps, id: \.self) { stepValue in
-                        Button {
-                            onEditingChanged(true)
-                            value = stepValue
-                            onEditingChanged(false)
-                        } label: {
-                            HStack {
-                                Text(formatted(stepValue))
-                                Spacer()
-                                if isSelected(stepValue) {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(Color.accentColor)
-                                        .fontWeight(.semibold)
-                                }
-                            }
-                        }
-                        .id(stepValue)
-                    }
-                }
-                .onAppear {
-                    scrollToCurrentValue(proxy: proxy)
-                }
-                .onChange(of: value) {
-                    scrollToCurrentValue(proxy: proxy)
-                }
-                .accessibilityIdentifier("Slider.list")
+            HStack(spacing: 20) {
+                Image(systemName: "chevron.left")
+                ProgressView(
+                    value: value - bounds.lowerBound,
+                    total: bounds.upperBound - bounds.lowerBound
+                )
+                Image(systemName: "chevron.right")
             }
+            .foregroundStyle(isFocused ? Color.primary : Color.secondary)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(isFocused ? AnyShapeStyle(.white.opacity(0.15)) : AnyShapeStyle(Color.clear))
+            )
+            .focusable()
+            .focused($isFocused)
+            .animation(.easeInOut(duration: 0.12), value: isFocused)
+            .onMoveCommand { direction in
+                switch direction {
+                case .left: adjust(by: -resolvedStep)
+                case .right: adjust(by: resolvedStep)
+                default: break
+                }
+            }
+            .accessibilityElement()
+            .accessibilityValue(Text(value, format: .number))
+            .accessibilityAdjustableAction { action in
+                switch action {
+                case .increment: adjust(by: resolvedStep)
+                case .decrement: adjust(by: -resolvedStep)
+                @unknown default: break
+                }
+            }
+            .accessibilityIdentifier("Slider.track")
         }
 
         // MARK: Private helpers
@@ -104,36 +112,14 @@
             return (bounds.upperBound - bounds.lowerBound) / 20
         }
 
-        /// All discrete values exposed as list rows.
-        private var steps: [Double] {
-            let s = resolvedStep
-            let count = Int(((bounds.upperBound - bounds.lowerBound) / s).rounded())
-            return (0...count).map { i in
-                min(bounds.lowerBound + Double(i) * s, bounds.upperBound)
-            }
-        }
-
-        /// Formats a value for display: integer when whole, otherwise as many
-        /// decimal places as needed to distinguish adjacent steps.
-        private func formatted(_ v: Double) -> String {
-            if v.truncatingRemainder(dividingBy: 1) == 0 {
-                return String(Int(v))
-            }
-            let decimals = max(1, Int(ceil(-log10(resolvedStep))))
-            return String(format: "%.\(decimals)f", v)
-        }
-
-        /// True when `v` is the closest step to the current binding value.
-        private func isSelected(_ v: Double) -> Bool {
-            guard let closest = steps.min(by: { abs($0 - value) < abs($1 - value) }) else {
-                return false
-            }
-            return v == closest
-        }
-
-        private func scrollToCurrentValue(proxy: ScrollViewProxy) {
-            guard let closest = steps.min(by: { abs($0 - value) < abs($1 - value) }) else { return }
-            withAnimation { proxy.scrollTo(closest, anchor: .center) }
+        /// Moves the value by `delta`, clamped to the bounds, notifying via
+        /// `onEditingChanged` around the change.
+        private func adjust(by delta: Double) {
+            let newValue = min(bounds.upperBound, max(bounds.lowerBound, value + delta))
+            guard newValue != value else { return }
+            onEditingChanged(true)
+            value = newValue
+            onEditingChanged(false)
         }
     }
 
@@ -145,7 +131,7 @@
         @State private var integers = 5.0
 
         var body: some View {
-            HStack(spacing: 40) {
+            VStack(alignment: .leading, spacing: 40) {
                 VStack(alignment: .leading) {
                     Text("Continuous (0…1)")
                         .font(.headline)
@@ -174,7 +160,7 @@
         }
     }
 
-    #Preview("Slider — tvOS list") {
+    #Preview("Slider — tvOS track") {
         SliderPreviewContainer()
     }
 #endif

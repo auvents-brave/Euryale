@@ -18,7 +18,7 @@ public import SwiftUI
 public struct RollingTipView: View {
 
     private let items: [SiriTipItem]
-    @State private var selectedIndex: Int?
+    @State private var order: [Int] = []
 
     /// Variadic initialiser — pass items as individual arguments.
     public init(_ items: SiriTipItem...) {
@@ -30,28 +30,32 @@ public struct RollingTipView: View {
         self.items = items
     }
 
-    private var visibleIndices: [Int] {
-        items.indices.filter { items[$0].isVisible.wrappedValue }
-    }
-
     public var body: some View {
-        Group {
-            if let idx = selectedIndex,
-               idx < items.count,
-               items[idx].isVisible.wrappedValue {
-                items[idx].view
+        // Siri tips have no surface on tvOS/watchOS — present but inert there,
+        // so call sites stay platform-agnostic (same idea as the other shims).
+        #if os(tvOS) || os(watchOS)
+            EmptyView()
+        #else
+            Group {
+                if let index = shownIndex {
+                    items[index].view
+                }
             }
-        }
-        .onAppear(perform: pickIfNeeded)
-        .onChange(of: items.map { $0.isVisible.wrappedValue }) { _, newValues in
-            guard let idx = selectedIndex,
-                  idx < newValues.count,
-                  !newValues[idx] else { return }
-            pickIfNeeded()
-        }
+            .onAppear {
+                if order.count != items.count {
+                    order = Array(items.indices).shuffled()
+                }
+            }
+        #endif
     }
 
-    private func pickIfNeeded() {
-        selectedIndex = visibleIndices.randomElement()
+    /// The first still-visible tip, in a stable randomised order.
+    ///
+    /// Derived on every render rather than stored, so it reacts immediately to
+    /// visibility changes: dismissing a tip rolls to the next visible one, and
+    /// resetting brings one back — no stale selection to get stuck on.
+    private var shownIndex: Int? {
+        let sequence = order.count == items.count ? order : Array(items.indices)
+        return sequence.first { items[$0].isVisible.wrappedValue }
     }
 }

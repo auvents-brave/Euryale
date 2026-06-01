@@ -22,6 +22,7 @@ public struct IPAddressField: View {
 
     // MARK: Filter
 
+    /// The kind of network value the field accepts and validates.
     public enum Filter {
         case ipv4
         case ipv6

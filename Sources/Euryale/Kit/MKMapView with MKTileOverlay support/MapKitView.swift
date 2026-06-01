@@ -28,6 +28,7 @@ public import SwiftUI
 
     // MARK: - MapKitView
 
+    /// A SwiftUI view that wraps an MKMapView and supports multiple cached tile overlays.
     public struct MapKitView: View {
 
         // MARK: State
@@ -36,14 +37,23 @@ public import SwiftUI
 
         // MARK: Init
 
+        /// Creates a map view without any tile overlays.
         public init() {
             self.init(overlays: [])
         }
 
+        /// Creates a map view with a single tile overlay.
+        ///
+        /// - Parameters:
+        ///   - cacheDirectory: The directory to cache map tiles.
+        ///   - urlTemplate: The URL template string for the tile overlay.
         public init(cacheDirectory: String, urlTemplate: String) {
             self.init(overlays: [(cacheDirectory: cacheDirectory, urlTemplate: urlTemplate)])
         }
 
+        /// Creates a map view with multiple tile overlays.
+        ///
+        /// - Parameter overlays: An array of tuples, each pairing a cache directory with a URL template.
         public init(overlays: [(cacheDirectory: String, urlTemplate: String)]) {
             let region = MKCoordinateRegion(
                 center: CLLocationCoordinate2D(
@@ -55,6 +65,11 @@ public import SwiftUI
             viewModel = MapViewModel(initialRegion: region)
         }
 
+        /// Creates a map view with an initial region and optional tile overlays.
+        ///
+        /// - Parameters:
+        ///   - initialRegion: The starting region for the map.
+        ///   - overlays: Overlay specifications; ignored on watchOS but kept for API parity.
         public init(initialRegion: MKCoordinateRegion, overlays: [(cacheDirectory: String, urlTemplate: String)] = []) {
             // overlays are ignored on watchOS for now; kept for API parity
             let region = initialRegion
@@ -63,6 +78,7 @@ public import SwiftUI
 
         // MARK: Public API
 
+        /// Centres the map on the given region.
         public func setRegion(_ newRegion: MKCoordinateRegion) {
             viewModel.setRegion(newRegion)
         }
@@ -133,6 +149,7 @@ public import SwiftUI
 
         // MARK: Public API
 
+        /// Centres the map on the given region.
         public func setRegion(_ region: MKCoordinateRegion) {
             map.setRegion(region, animated: false)
         }

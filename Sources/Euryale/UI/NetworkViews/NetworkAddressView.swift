@@ -18,6 +18,7 @@ public struct NetworkAddressView: View {
 
     // MARK: IP version mode
 
+    /// Which IP versions the address field offers.
     public enum Mode {
         case ipv4Only
         case ipv4IPv6

@@ -23,6 +23,10 @@ public struct Pill: View {
     let systemImage: String?
     let value: Int
 
+    #if !os(macOS) && !os(watchOS)
+        @Environment(\.verticalSizeClass) private var verticalSizeClass
+    #endif
+
     // MARK: Init
 
     /// Creates a pill.
@@ -39,25 +43,57 @@ public struct Pill: View {
     // MARK: Body
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Group {
-                if let systemImage {
-                    Label(label, systemImage: systemImage)
-                } else {
-                    Text(label)
-                }
+        layout
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.secondary.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .accessibilityIdentifier("Pill")
+    }
+
+    /// Caption above the value when there's room; caption and value side by side
+    /// when vertical space is tight (e.g. iPhone landscape) to save height.
+    @ViewBuilder
+    private var layout: some View {
+        if isHeightConstrained {
+            HStack {
+                caption
+                Spacer()
+                valueText
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            Text("\(value)")
-                .font(.headline)
-                .monospacedDigit()
+        } else {
+            VStack(alignment: .leading, spacing: 4) {
+                caption
+                valueText
+            }
         }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.secondary.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .accessibilityIdentifier("Pill")
+    }
+
+    private var caption: some View {
+        Group {
+            if let systemImage {
+                Label(label, systemImage: systemImage)
+            } else {
+                Text(label)
+            }
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
+
+    private var valueText: some View {
+        Text("\(value)")
+            .font(.headline)
+            .monospacedDigit()
+    }
+
+    /// Whether vertical space is scarce — drives the compact, single-line layout.
+    private var isHeightConstrained: Bool {
+        #if os(macOS) || os(watchOS)
+            false
+        #else
+            verticalSizeClass == .compact
+        #endif
     }
 }
 
@@ -123,33 +159,18 @@ public struct PillsView: View {
 
     // MARK: Body
 
-    #if false
-        public var body: some View {
-            GeometryReader { proxy in
-                VStack(alignment: .leading, spacing: 0) {
-                    AnyLayout(
-                        proxy.size.height > proxy.size.width
-                            ? AnyLayout(VStackLayout(alignment: .leading))
-                            : AnyLayout(HStackLayout())
-                    ) {
-                        pillItems()
-                    }
-                }
+    public var body: some View {
+        // A row when the width allows it, otherwise stacked.
+        ViewThatFits(in: .horizontal) {
+            HStack {
+                pillItems()
+            }
+            VStack(alignment: .leading) {
+                pillItems()
             }
         }
-    #else
-        public var body: some View {
-            ViewThatFits(in: .horizontal) {
-                HStack {
-                    pillItems()
-                }
-                VStack(alignment: .leading) {
-                    pillItems()
-                }
-            }
-            .accessibilityIdentifier("PillsView")
-        }
-    #endif
+        .accessibilityIdentifier("PillsView")
+    }
 }
 
 // MARK: - Previews
