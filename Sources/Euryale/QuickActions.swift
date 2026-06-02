@@ -1,9 +1,9 @@
 import Foundation
 #if canImport(UIKit)
-    public import UIKit
+	public import UIKit
 #endif
 #if canImport(AppKit)
-    public import AppKit
+	public import AppKit
 #endif
 
 // MARK: - QuickAction

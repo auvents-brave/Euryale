@@ -1,6 +1,8 @@
 public import MapKit
 public import SwiftUI
 
+internal import Stheno
+
 #if os(watchOS)
     // MARK: - MapViewModel
 
@@ -34,6 +36,24 @@ public import SwiftUI
         // MARK: State
 
         @State var viewModel: MapViewModel
+
+        /// Position markers to draw (see `marking(_:)`).
+        var markers: [MapMarker] = []
+        /// Styled polylines to draw (see `tracking(_:)`).
+        var tracks: [MapTrack] = []
+        /// The coordinate for initial centring / recentring (see `centering(on:recenterToken:)`).
+        var centerCoordinate: Coordinate?
+        /// Changing this token recentres the map on ``centerCoordinate``.
+        var recenterToken: AnyHashable = 0
+        /// When `true`, the map stays continuously centred on ``centerCoordinate`` (see `following(_:)`).
+        var continuousFollow = false
+        /// Whether the user can interact with the map (see `interactive(_:)`).
+        var isInteractive = true
+        /// Latitude/longitude span used when (re)centring (see `following(_:span:)`).
+        var zoomSpan: Double = 0.02
+
+        /// Whether the one-shot initial centring has already happened.
+        @State private var didInitialCenter = false
 
         // MARK: Init
 
@@ -87,9 +107,36 @@ public import SwiftUI
 
         public var body: some View {
             if #available(watchOS 12, *) {
-                Map(position: $viewModel.position)
-                    .ignoresSafeArea()
-                    .accessibilityIdentifier("MapKitView.map")
+                Map(position: $viewModel.position, interactionModes: isInteractive ? .all : []) {
+                    markerAndTrackContent
+                }
+                .ignoresSafeArea()
+                .accessibilityIdentifier("MapKitView.map")
+                // Initial centring, or continuous follow when requested.
+                .onChange(of: centerCoordinate, initial: true) { _, newValue in
+                    guard let newValue else { return }
+                    if continuousFollow {
+                        viewModel.setRegion(MKCoordinateRegion(
+                            center: CLLocationCoordinate2D(newValue),
+                            span: MKCoordinateSpan(latitudeDelta: zoomSpan, longitudeDelta: zoomSpan)
+                        ))
+                        didInitialCenter = true
+                    } else if !didInitialCenter {
+                        viewModel.setRegion(MKCoordinateRegion(
+                            center: CLLocationCoordinate2D(newValue),
+                            span: MKCoordinateSpan(latitudeDelta: zoomSpan, longitudeDelta: zoomSpan)
+                        ))
+                        didInitialCenter = true
+                    }
+                }
+                // Explicit recentre request (keeps the current zoom).
+                .onChange(of: recenterToken) { _, _ in
+                    guard let centerCoordinate else { return }
+                    viewModel.setRegion(MKCoordinateRegion(
+                        center: CLLocationCoordinate2D(centerCoordinate),
+                        span: viewModel.span
+                    ))
+                }
             } else {
                 Text("Not supported", bundle: .module)
                     .accessibilityIdentifier("MapKitView.map")
@@ -108,6 +155,21 @@ public import SwiftUI
         let delegate = MapDelegate()
         /// The underlying MKMapView instance displayed by this view.
         let map = MKMapView()
+
+        /// Position markers to draw (see `marking(_:)`).
+        var markers: [MapMarker] = []
+        /// Styled polylines to draw (see `tracking(_:)`).
+        var tracks: [MapTrack] = []
+        /// The coordinate for initial centring / recentring (see `centering(on:recenterToken:)`).
+        var centerCoordinate: Coordinate?
+        /// Changing this token recentres the map on ``centerCoordinate``.
+        var recenterToken: AnyHashable = 0
+        /// When `true`, the map stays continuously centred on ``centerCoordinate`` (see `following(_:)`).
+        var continuousFollow = false
+        /// Whether the user can scroll / zoom / rotate the map (see `interactive(_:)`).
+        var isInteractive = true
+        /// Latitude/longitude span used when (re)centring (see `following(_:span:)`).
+        var zoomSpan: Double = 0.02
 
         // MARK: Init
 
@@ -156,9 +218,14 @@ public import SwiftUI
 
         // MARK: Body
 
-        /// The SwiftUI view that wraps the MKMapView and ignores safe area edges.
+        /// The SwiftUI view that wraps the MKMapView (with its tile overlays) and
+        /// applies the markers, tracks and follow target.
         public var body: some View {
-            WrapperView(view: map)
+            MarkableMapRepresentable(
+                map: map, markers: markers, tracks: tracks,
+                centerCoordinate: centerCoordinate, recenterToken: recenterToken,
+                continuousFollow: continuousFollow, isInteractive: isInteractive, zoomSpan: zoomSpan
+            )
                 .ignoresSafeArea()
                 .accessibilityIdentifier("MapKitView.map")
         }
