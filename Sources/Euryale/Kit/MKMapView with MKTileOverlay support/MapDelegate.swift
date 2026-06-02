@@ -64,6 +64,7 @@
             view.annotation = annotation
             view.canShowCallout = false
             view.image = marker.image
+            view.centerOffset = marker.centerOffset
             return view
         }
     }

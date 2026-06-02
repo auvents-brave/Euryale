@@ -2,6 +2,7 @@ public import SwiftUI
 public import Stheno
 
 internal import CoreLocation
+internal import CoreText
 internal import MapKit
 
 #if canImport(UIKit)
@@ -73,6 +74,10 @@ public struct MapMarker: Identifiable {
     public var direction: Double?
     /// How the marker is drawn.
     public var style: MapPositionStyle
+    /// Optional label drawn just below the marker (e.g. a vessel name).
+    public var title: String?
+    /// Drawing opacity in `0...1`. Use values below `1` to fade stale markers.
+    public var opacity: Double
 
     /// Creates a marker.
     /// - Parameters:
@@ -80,16 +85,22 @@ public struct MapMarker: Identifiable {
     ///   - coordinate: Anchor coordinate.
     ///   - direction: Heading in degrees, for directional styles.
     ///   - style: How the marker is drawn.
+    ///   - title: Optional label drawn just below the marker.
+    ///   - opacity: Drawing opacity in `0...1` (values below `1` fade the marker).
     public init(
         id: AnyHashable = UUID(),
         coordinate: Coordinate,
         direction: Double? = nil,
-        style: MapPositionStyle
+        style: MapPositionStyle,
+        title: String? = nil,
+        opacity: Double = 1
     ) {
         self.id = id
         self.coordinate = coordinate
         self.direction = direction
         self.style = style
+        self.title = title
+        self.opacity = opacity
     }
 }
 
@@ -169,23 +180,57 @@ public extension MapKitView {
     final class MarkerAnnotation: NSObject, MKAnnotation {
         @objc dynamic var coordinate: CLLocationCoordinate2D
         var image: OSImage
+        /// Shifts the view so the glyph (not the labelled image's centre) anchors
+        /// on the coordinate.
+        var centerOffset: CGPoint
         let key: AnyHashable
 
-        init(key: AnyHashable, coordinate: CLLocationCoordinate2D, image: OSImage) {
+        init(key: AnyHashable, coordinate: CLLocationCoordinate2D, image: OSImage, centerOffset: CGPoint) {
             self.key = key
             self.coordinate = coordinate
             self.image = image
+            self.centerOffset = centerOffset
         }
     }
 
     enum MapMarkerImage {
 
-        /// Renders a marker bitmap for the given style and direction, in a
-        /// UIKit-like top-left, y-down space on every platform.
-        static func make(style: MapPositionStyle, direction: Double?) -> OSImage {
-            let size = CGSize(width: 52, height: 52)
-            return render(size: size) { ctx in
-                let centre = CGPoint(x: size.width / 2, y: size.height / 2)
+        private static let glyphBox: CGFloat = 52
+        private static var titleFont: OSFont { .systemFont(ofSize: 11, weight: .semibold) }
+
+        /// Renders a marker bitmap for the given style, direction, optional title
+        /// and opacity, in a UIKit-like top-left, y-down space on every platform.
+        ///
+        /// The glyph (dot/triangle/hull) is drawn in a 52×52 box; when a title is
+        /// present it sits just below, in a wider/taller canvas. The returned
+        /// `centerOffset` shifts the annotation so the glyph — not the canvas
+        /// centre — stays anchored on the coordinate.
+        static func make(
+            style: MapPositionStyle,
+            direction: Double?,
+            title: String?,
+            opacity: Double
+        ) -> (image: OSImage, centerOffset: CGPoint) {
+            var line: CTLine?
+            var lineWidth: CGFloat = 0
+            if let title, title.isEmpty == false {
+                let attributes: [NSAttributedString.Key: Any] = [
+                    .font: titleFont,
+                    NSAttributedString.Key(kCTForegroundColorFromContextAttributeName as String): true,
+                ]
+                let ctLine = CTLineCreateWithAttributedString(
+                    NSAttributedString(string: title, attributes: attributes)
+                )
+                line = ctLine
+                lineWidth = CGFloat(CTLineGetTypographicBounds(ctLine, nil, nil, nil))
+            }
+            let gap: CGFloat = 1
+            let nameHeight = line == nil ? 0 : ceil(titleFont.ascender - titleFont.descender) + gap
+            let width = max(glyphBox, ceil(lineWidth) + 10)
+            let size = CGSize(width: width, height: glyphBox + nameHeight)
+            let image = render(size: size) { ctx in
+                ctx.setAlpha(CGFloat(opacity))
+                let centre = CGPoint(x: width / 2, y: glyphBox / 2)
                 switch style {
                 case let .dot(color):
                     drawDot(ctx, centre: centre, color: color)
@@ -198,7 +243,28 @@ public extension MapKitView {
                     // Stationary / no heading → point north.
                     drawHull(ctx, centre: centre, direction: direction ?? 0, color: color)
                 }
+                if let line {
+                    drawTitle(ctx, line: line, lineWidth: lineWidth, width: width, topY: glyphBox + gap)
+                }
             }
+            return (image, CGPoint(x: 0, y: nameHeight / 2))
+        }
+
+        /// Draws the title line, centred horizontally below the glyph, with a soft
+        /// dark halo so it stays legible over the chart. The context is y-down, so
+        /// we flip locally for upright glyphs.
+        private static func drawTitle(
+            _ ctx: CGContext, line: CTLine, lineWidth: CGFloat, width: CGFloat, topY: CGFloat
+        ) {
+            ctx.saveGState()
+            ctx.setShadow(offset: .zero, blur: 2.5, color: OSColor.black.withAlphaComponent(0.9).cgColor)
+            ctx.setFillColor(OSColor.white.cgColor)
+            ctx.textMatrix = .identity
+            ctx.translateBy(x: (width - lineWidth) / 2, y: topY + titleFont.ascender)
+            ctx.scaleBy(x: 1, y: -1)
+            ctx.textPosition = .zero
+            CTLineDraw(line, ctx)
+            ctx.restoreGState()
         }
 
         private static func drawDot(_ ctx: CGContext, centre: CGPoint, color: Color) {
@@ -404,14 +470,24 @@ public extension MapKitView {
             var seen = Set<AnyHashable>()
             for marker in markers {
                 seen.insert(marker.id)
-                let image = MapMarkerImage.make(style: marker.style, direction: marker.direction)
+                let rendered = MapMarkerImage.make(
+                    style: marker.style, direction: marker.direction,
+                    title: marker.title, opacity: marker.opacity
+                )
                 let coordinate = CLLocationCoordinate2D(marker.coordinate)
                 if let existing = annotations[marker.id] {
                     existing.coordinate = coordinate
-                    existing.image = image
-                    map.view(for: existing)?.image = image
+                    existing.image = rendered.image
+                    existing.centerOffset = rendered.centerOffset
+                    if let view = map.view(for: existing) {
+                        view.image = rendered.image
+                        view.centerOffset = rendered.centerOffset
+                    }
                 } else {
-                    let annotation = MarkerAnnotation(key: marker.id, coordinate: coordinate, image: image)
+                    let annotation = MarkerAnnotation(
+                        key: marker.id, coordinate: coordinate,
+                        image: rendered.image, centerOffset: rendered.centerOffset
+                    )
                     annotations[marker.id] = annotation
                     map.addAnnotation(annotation)
                 }
@@ -474,8 +550,9 @@ public extension MapKitView {
                 }
             }
             ForEach(markers) { marker in
-                Annotation("", coordinate: CLLocationCoordinate2D(marker.coordinate)) {
+                Annotation(marker.title ?? "", coordinate: CLLocationCoordinate2D(marker.coordinate)) {
                     MarkerShape(style: marker.style, direction: marker.direction)
+                        .opacity(marker.opacity)
                 }
             }
         }
