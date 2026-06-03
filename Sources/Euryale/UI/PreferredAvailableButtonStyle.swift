@@ -78,19 +78,19 @@ extension View {
     } label: {
         Label("Hello!", systemImage: "fireworks")
     }
+
+    @available(macOS 26, macCatalyst 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *)
+    #Preview("glass") {
+        previewButton.GlassButtonStyle()
+    }
+
+    @available(macOS 26, macCatalyst 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *)
+    #Preview("regular") {
+        previewButton.RegularButtonStyle()
+    }
+
+    @available(macOS 26, macCatalyst 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *)
+    #Preview("fallback") {
+        previewButton.FallbackButtonStyle()
+    }
 #endif
-
-@available(macOS 26, macCatalyst 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *)
-#Preview("glass") {
-    previewButton.GlassButtonStyle()
-}
-
-@available(macOS 26, macCatalyst 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *)
-#Preview("regular") {
-    previewButton.RegularButtonStyle()
-}
-
-@available(macOS 26, macCatalyst 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *)
-#Preview("fallback") {
-    previewButton.FallbackButtonStyle()
-}

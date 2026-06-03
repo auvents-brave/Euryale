@@ -522,7 +522,6 @@
         	return float4(col, 1.0);
         }
         """
-    #endif
 
     // MARK: - Previews
 
@@ -533,4 +532,5 @@
     #Preview("Mountains") {
         MetalKitView(source: mountainsShaderSource, rendererKind: .mountains)
     }
+    #endif
 #endif
