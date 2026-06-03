@@ -51,6 +51,9 @@ internal import Stheno
         var isInteractive = true
         /// Latitude/longitude span used when (re)centring (see `following(_:span:)`).
         var zoomSpan: Double = 0.02
+        /// Called with a marker's id when it is tapped (unused on watchOS; kept
+        /// for API parity). See `onMarkerSelected(_:)`.
+        var onSelectMarker: ((AnyHashable) -> Void)?
 
         /// Whether the one-shot initial centring has already happened.
         @State private var didInitialCenter = false
@@ -170,6 +173,8 @@ internal import Stheno
         var isInteractive = true
         /// Latitude/longitude span used when (re)centring (see `following(_:span:)`).
         var zoomSpan: Double = 0.02
+        /// Called with a marker's id when it is tapped. See `onMarkerSelected(_:)`.
+        var onSelectMarker: ((AnyHashable) -> Void)?
 
         // MARK: Init
 
@@ -224,7 +229,8 @@ internal import Stheno
             MarkableMapRepresentable(
                 map: map, markers: markers, tracks: tracks,
                 centerCoordinate: centerCoordinate, recenterToken: recenterToken,
-                continuousFollow: continuousFollow, isInteractive: isInteractive, zoomSpan: zoomSpan
+                continuousFollow: continuousFollow, isInteractive: isInteractive, zoomSpan: zoomSpan,
+                onSelectMarker: onSelectMarker
             )
                 .ignoresSafeArea()
                 .accessibilityIdentifier("MapKitView.map")

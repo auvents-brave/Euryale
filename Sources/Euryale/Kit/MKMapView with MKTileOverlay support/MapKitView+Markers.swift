@@ -169,6 +169,14 @@ public extension MapKitView {
         copy.isInteractive = enabled
         return copy
     }
+
+    /// Reports the id of a tapped marker, so the caller can present details for
+    /// it. Not available on watchOS.
+    func onMarkerSelected(_ handler: @escaping (AnyHashable) -> Void) -> MapKitView {
+        var copy = self
+        copy.onSelectMarker = handler
+        return copy
+    }
 }
 
 // MARK: - Marker drawing (MapKit platforms)
@@ -244,7 +252,9 @@ public extension MapKitView {
                     drawHull(ctx, centre: centre, direction: direction ?? 0, color: color)
                 }
                 if let line {
-                    drawTitle(ctx, line: line, lineWidth: lineWidth, width: width, topY: glyphBox + gap)
+                    // Sit the label a touch closer to the hull (the glyph occupies
+                    // only the upper part of its box, leaving a gap below it).
+                    drawTitle(ctx, line: line, lineWidth: lineWidth, width: width, topY: glyphBox - 7)
                 }
             }
             return (image, CGPoint(x: 0, y: nameHeight / 2))
@@ -354,6 +364,7 @@ public extension MapKitView {
             let continuousFollow: Bool
             let isInteractive: Bool
             let zoomSpan: Double
+            let onSelectMarker: ((AnyHashable) -> Void)?
 
             func makeCoordinator() -> MarkableMapState { MarkableMapState() }
             func makeNSView(context: Context) -> MKMapView {
@@ -369,6 +380,7 @@ public extension MapKitView {
                 map.isZoomEnabled = isInteractive
                 map.isRotateEnabled = isInteractive
                 map.isPitchEnabled = isInteractive
+                context.coordinator.mapDelegate.onSelect = onSelectMarker
                 context.coordinator.apply(
                     markers: markers, tracks: tracks,
                     centerCoordinate: centerCoordinate, recenterToken: recenterToken,
@@ -386,6 +398,7 @@ public extension MapKitView {
             let continuousFollow: Bool
             let isInteractive: Bool
             let zoomSpan: Double
+            let onSelectMarker: ((AnyHashable) -> Void)?
 
             func makeCoordinator() -> MarkableMapState { MarkableMapState() }
             func makeUIView(context: Context) -> MKMapView {
@@ -399,8 +412,12 @@ public extension MapKitView {
             func updateUIView(_ map: MKMapView, context: Context) {
                 map.isScrollEnabled = isInteractive
                 map.isZoomEnabled = isInteractive
-                map.isRotateEnabled = isInteractive
-                map.isPitchEnabled = isInteractive
+                #if !os(tvOS)
+                    // Rotation and pitch gestures don't exist on tvOS.
+                    map.isRotateEnabled = isInteractive
+                    map.isPitchEnabled = isInteractive
+                #endif
+                context.coordinator.mapDelegate.onSelect = onSelectMarker
                 context.coordinator.apply(
                     markers: markers, tracks: tracks,
                     centerCoordinate: centerCoordinate, recenterToken: recenterToken,

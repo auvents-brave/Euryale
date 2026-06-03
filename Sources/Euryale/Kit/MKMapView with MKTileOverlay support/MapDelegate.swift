@@ -14,6 +14,9 @@
         /// flag selects the wide translucent underlay vs the bright core line.
         var trackStyles: [ObjectIdentifier: (style: MapTrackStyle, isHalo: Bool)] = [:]
 
+        /// Called with a tapped marker's id, set by the markable representable.
+        var onSelect: ((AnyHashable) -> Void)?
+
         /// Provides a renderer for tile overlays and styled polylines.
         /// - Parameters:
         ///   - mapView: The `MKMapView` requesting the renderer.
@@ -66,6 +69,15 @@
             view.image = marker.image
             view.centerOffset = marker.centerOffset
             return view
+        }
+
+        /// Reports a tapped marker, then immediately deselects it so tapping the
+        /// same marker again fires another selection.
+        func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
+            if let marker = view.annotation as? MarkerAnnotation {
+                onSelect?(marker.key)
+            }
+            mapView.deselectAnnotation(view.annotation, animated: false)
         }
     }
 #endif
