@@ -48,6 +48,13 @@ public struct NetworkAddressView: View {
 
     // MARK: Init
 
+    /// Creates an address input.
+    /// - Parameters:
+    ///   - mode: Which IP versions the field offers.
+    ///   - address: Binding to the edited address string.
+    ///   - port: Optional port binding; when provided a **Port** row is shown.
+    ///   - addressDisabled: Disables the address and domain fields while keeping the port active.
+    ///   - domainResolver: Resolves a hostname to IP strings; pass `nil` to hide the domain-name row.
     public init(
         mode: Mode = .ipv4Only,
         address: Binding<String>,

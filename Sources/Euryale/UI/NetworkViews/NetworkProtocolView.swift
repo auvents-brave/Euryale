@@ -51,6 +51,13 @@ public struct NetworkProtocolView: View {
 
     // MARK: Init
 
+    /// Creates a protocol picker.
+    /// - Parameters:
+    ///   - available: The protocols offered for selection.
+    ///   - selection: Binding to the currently selected protocol.
+    ///   - addressDisabled: Reflects whether the chosen protocol disables address editing.
+    ///   - bonjourServiceTypes: Bonjour service-type identifiers; when non-nil a **Bonjour** row is shown.
+    ///   - selectedBonjourType: Binding to the chosen Bonjour service type.
     public init(
         available: [NetworkProtocol],
         selection: Binding<NetworkProtocol>,

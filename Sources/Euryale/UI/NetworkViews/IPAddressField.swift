@@ -37,6 +37,10 @@ public struct IPAddressField: View {
 
     // MARK: Init
 
+    /// Creates an address field.
+    /// - Parameters:
+    ///   - filter: The address format the field accepts and validates.
+    ///   - text: Binding to the edited text.
     public init(_ filter: Filter, text: Binding<String>) {
         self.filter = filter
         _text = text

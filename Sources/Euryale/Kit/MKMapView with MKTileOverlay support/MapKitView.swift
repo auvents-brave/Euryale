@@ -22,6 +22,8 @@ internal import Stheno
 
         // MARK: Public API
 
+        /// Recentres the camera on the given region.
+        /// - Parameter newRegion: The region to display.
         public func setRegion(_ newRegion: MKCoordinateRegion) {
             position = MapCameraPosition.region(newRegion)
             span = newRegion.span

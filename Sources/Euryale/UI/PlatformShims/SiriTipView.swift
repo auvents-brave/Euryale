@@ -26,6 +26,10 @@ public struct SiriTipItem {
     let isVisible: Binding<Bool>
     let view: AnyView
 
+    /// Creates an item from an intent and its visibility binding.
+    /// - Parameters:
+    ///   - intent: The intent whose Siri phrase is shown.
+    ///   - isVisible: Controls whether the tip card is displayed.
     @MainActor
     public init<I: SiriTipDisplayable>(_ intent: I, _ isVisible: Binding<Bool>) {
         self.isVisible = isVisible
@@ -50,6 +54,10 @@ public struct SiriTipView<Intent: SiriTipDisplayable>: View {
     let intent: Intent
     @Binding var isVisible: Bool
 
+    /// Creates the tip view.
+    /// - Parameters:
+    ///   - intent: The intent whose Siri phrase is shown.
+    ///   - isVisible: Controls whether the tip card is displayed.
     public init(intent: Intent, isVisible: Binding<Bool>) {
         self.intent = intent
         _isVisible = isVisible
