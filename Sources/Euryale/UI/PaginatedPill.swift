@@ -48,7 +48,11 @@ public import SwiftUI
 /// ```
 ///
 /// For a non-paginated layout of multiple pills, see ``PillsView``.
-public struct PaginatedPill<Page: Identifiable, Content: View>: View {
+///
+/// This is the bare paginator (no pill background): content + indicator dots +
+/// swipe, usable anywhere. For the rounded-pill chrome, wrap it in
+/// ``PaginatedPill``.
+public struct PaginatedView<Page: Identifiable, Content: View>: View {
     /// Layout strategy for the indicator dots relative to the page content.
     public enum Style: Sendable {
         /// Content fills the pill; the indicator row floats on top of the
@@ -112,10 +116,7 @@ public struct PaginatedPill<Page: Identifiable, Content: View>: View {
                 }
             }
         }
-        .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.secondary.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         .contentShape(Rectangle())
         // Use `.simultaneousGesture` so the swipe coexists with the per-dot
         // Button taps.  On macOS, a plain `.gesture(...)` on the container
@@ -123,7 +124,7 @@ public struct PaginatedPill<Page: Identifiable, Content: View>: View {
         #if !os(tvOS)
         .simultaneousGesture(swipeGesture)
         #endif
-        .accessibilityIdentifier("PaginatedPill")
+        .accessibilityIdentifier("PaginatedView")
         .accessibilityElement(children: .contain)
         .accessibilityLabel(
             pages.isEmpty
@@ -258,6 +259,51 @@ public struct PaginatedPill<Page: Identifiable, Content: View>: View {
             }
     }
     #endif
+}
+
+// MARK: - PaginatedPill
+
+/// A ``PaginatedView`` wrapped in the rounded ``Pill`` background.
+public struct PaginatedPill<Page: Identifiable, Content: View>: View {
+    /// Layout strategy for the indicator dots — see ``PaginatedView/Style``.
+    public typealias Style = PaginatedView<Page, Content>.Style
+
+    private let pages: [Page]
+    private let style: Style
+    private let indicatorAlignment: Alignment
+    private let accentColor: Color?
+    @ViewBuilder private let content: (Page) -> Content
+
+    /// Creates a paginated pill.
+    /// See ``PaginatedView/init(pages:style:indicatorAlignment:accentColor:content:)``.
+    public init(
+        pages: [Page],
+        style: Style = .overlay,
+        indicatorAlignment: Alignment = .bottomTrailing,
+        accentColor: Color? = nil,
+        @ViewBuilder content: @escaping (Page) -> Content
+    ) {
+        self.pages = pages
+        self.style = style
+        self.indicatorAlignment = indicatorAlignment
+        self.accentColor = accentColor
+        self.content = content
+    }
+
+    public var body: some View {
+        PaginatedView(
+            pages: pages,
+            style: style,
+            indicatorAlignment: indicatorAlignment,
+            accentColor: accentColor,
+            content: content
+        )
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.secondary.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .accessibilityIdentifier("PaginatedPill")
+    }
 }
 
 // MARK: - Previews
