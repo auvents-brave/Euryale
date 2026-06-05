@@ -17,6 +17,11 @@
         /// Called with a tapped marker's id, set by the markable representable.
         var onSelect: ((AnyHashable) -> Void)?
 
+        /// Called whenever the visible region changes (pan / zoom / **rotate**), set
+        /// by the markable representable so it can keep directional markers aligned
+        /// to the chart when the map is rotated.
+        var onRegionChange: ((MKMapView) -> Void)?
+
         /// Provides a renderer for tile overlays and styled polylines.
         /// - Parameters:
         ///   - mapView: The `MKMapView` requesting the renderer.
@@ -69,6 +74,12 @@
             view.image = marker.image
             view.centerOffset = marker.centerOffset
             return view
+        }
+
+        /// Notifies the representable of region changes so it can re-orient
+        /// directional markers when the map is rotated.
+        func mapViewDidChangeVisibleRegion(_ mapView: MKMapView) {
+            onRegionChange?(mapView)
         }
 
         /// Reports a tapped marker, then immediately deselects it so tapping the

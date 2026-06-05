@@ -439,6 +439,13 @@ public extension MapKitView {
         private var annotations: [AnyHashable: MarkerAnnotation] = [:]
         private var overlays: [AnyHashable: (halo: MKPolyline, core: MKPolyline)] = [:]
         private var pointCounts: [AnyHashable: Int] = [:]
+        /// The most recently applied markers, kept so directional glyphs can be
+        /// re-rendered against a new map rotation without a SwiftUI update.
+        private var lastMarkers: [MapMarker] = []
+        /// The map rotation (degrees) the marker images were last rendered for.
+        private var renderedHeading: Double = 0
+        /// Whether the rotation-tracking callback has been installed.
+        private var observingRegion = false
 
         func apply(
             markers: [MapMarker],
@@ -449,6 +456,12 @@ public extension MapKitView {
             zoomSpan: Double,
             on map: MKMapView
         ) {
+            // Install the rotation observer once, so directional markers stay
+            // aligned to the chart when the user rotates the map.
+            if !observingRegion {
+                observingRegion = true
+                mapDelegate.onRegionChange = { [weak self] map in self?.headingDidChange(on: map) }
+            }
             // Centre FIRST, so a marker added below lands inside the visible
             // region and MapKit creates its annotation view immediately. (When
             // the marker is added off-screen and the camera never moves again,
@@ -483,12 +496,33 @@ public extension MapKitView {
             applyMarkers(markers, on: map)
         }
 
+        /// Re-renders the directional markers when the map's rotation changes, so a
+        /// boat hull keeps pointing along its true heading on the chart instead of
+        /// staying fixed to the screen. Gated on a meaningful heading delta so pans
+        /// and zooms (which also change the visible region) don't re-render.
+        private func headingDidChange(on map: MKMapView) {
+            let heading = map.camera.heading
+            guard abs(heading - renderedHeading) > 0.25 else { return }
+            applyMarkers(lastMarkers, on: map)
+        }
+
         private func applyMarkers(_ markers: [MapMarker], on map: MKMapView) {
+            lastMarkers = markers
+            // Counter-rotate directional glyphs by the map's rotation so they stay
+            // aligned to true north on the chart; the label stays upright because
+            // it is drawn separately from the rotated glyph.
+            let heading = map.camera.heading
+            renderedHeading = heading
             var seen = Set<AnyHashable>()
             for marker in markers {
                 seen.insert(marker.id)
+                let glyphDirection: Double?
+                switch marker.style {
+                case .boatHull: glyphDirection = (marker.direction ?? 0) - heading
+                default:        glyphDirection = marker.direction.map { $0 - heading }
+                }
                 let rendered = MapMarkerImage.make(
-                    style: marker.style, direction: marker.direction,
+                    style: marker.style, direction: glyphDirection,
                     title: marker.title, opacity: marker.opacity
                 )
                 let coordinate = CLLocationCoordinate2D(marker.coordinate)
