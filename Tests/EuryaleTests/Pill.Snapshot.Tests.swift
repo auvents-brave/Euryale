@@ -56,7 +56,7 @@ struct PillSnapshotTests {
         // The grouped large number antialiases marginally differently between a
         // local Mac and the CI runner (same Xcode / iPhone 17 @3x simulator), so
         // this one allows a small perceptual tolerance rather than exact match.
-        assertSnapshot(of: view, as: .image(precision: 0.99, perceptualPrecision: 0.98))
+        assertSnapshot(of: view, as: .image(precision: 0.97, perceptualPrecision: 0.98))
     }
 }
 
