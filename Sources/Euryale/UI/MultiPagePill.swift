@@ -69,3 +69,72 @@ public struct MultiPagePill<Page: View>: View {
         }
     #endif
 }
+
+// MARK: - Previews
+
+/// A stand-in sea backdrop so the pill's translucent material reads correctly.
+private var seaBackdrop: some View {
+    LinearGradient(
+        colors: [.teal, .blue, .indigo],
+        startPoint: .top, endPoint: .bottom
+    )
+    .ignoresSafeArea()
+}
+
+#Preview("Single page") {
+    ZStack(alignment: .topLeading) {
+        seaBackdrop
+        MultiPagePill { _ in
+            VStack(alignment: .leading) {
+                Text("Speed")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text("12.4 kn")
+                    .font(.headline.monospacedDigit())
+            }
+        }
+        .padding()
+    }
+}
+
+#Preview("Three pages — boat read-out HUD") {
+    struct Readout {
+        let title: LocalizedStringKey
+        let value: String
+        let systemImage: String
+    }
+    let pages = [
+        Readout(title: "Heading", value: "235°", systemImage: "location.north.line"),
+        Readout(title: "Speed", value: "12.4 kn", systemImage: "speedometer"),
+        Readout(title: "Apparent wind", value: "18 kn", systemImage: "wind"),
+    ]
+    return ZStack(alignment: .topLeading) {
+        seaBackdrop
+        MultiPagePill(pageCount: pages.count) { index in
+            let page = pages[index]
+            HStack(spacing: 8) {
+                Image(systemName: page.systemImage)
+                    .font(.title3)
+                VStack(alignment: .leading) {
+                    Text(page.title)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Text(page.value)
+                        .font(.headline.monospacedDigit())
+                }
+            }
+        }
+        .padding()
+    }
+}
+
+#Preview("Centred over a map corner") {
+    ZStack(alignment: .bottomTrailing) {
+        seaBackdrop
+        MultiPagePill(pageCount: 2) { index in
+            Text(index == 0 ? "Page one" : "Page two")
+                .font(.headline)
+        }
+        .padding()
+    }
+}
