@@ -104,9 +104,6 @@ jobs:
           SCHEME: ${{ inputs.scheme }}
           DESTINATION: ${{ steps.sim.outputs.destination }}
           RUNTIME_KEY: ${{ steps.sim.outputs.runtime_key }}
-          # TEMP: re-record drifted snapshot references on the snapshot-bearing
-          # job so they match this runner. Reverted once references are committed.
-          SIMCTL_CHILD_SNAPSHOT_TESTING_RECORD: ${{ inputs.upload-snapshots && 'failed' || 'never' }}
         run: |
           set -euo pipefail
           python3 <<'PY'

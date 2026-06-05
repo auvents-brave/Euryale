@@ -53,7 +53,10 @@ struct PillSnapshotTests {
         let view = Pill(label: "Steps today", value: 14_237)
             .frame(width: 200, height: 70)
 
-        assertSnapshot(of: view, as: .image)
+        // The grouped large number antialiases marginally differently between a
+        // local Mac and the CI runner (same Xcode / iPhone 17 @3x simulator), so
+        // this one allows a small perceptual tolerance rather than exact match.
+        assertSnapshot(of: view, as: .image(precision: 0.99, perceptualPrecision: 0.98))
     }
 }
 
