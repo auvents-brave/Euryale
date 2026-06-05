@@ -13,6 +13,6 @@ jobs:
     uses: ./.github/workflows/_apple-sim-tests.yml
     with:
       workflow-name: "iPad"
-      scheme: "Euryale"
+      scheme: "Euryale-Package"
       sim-runtime-prefix: "com.apple.CoreSimulator.SimRuntime.iOS"
       device-name-regex: "iPad"
