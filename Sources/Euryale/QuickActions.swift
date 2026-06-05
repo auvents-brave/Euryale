@@ -1,9 +1,9 @@
 import Foundation
 #if canImport(UIKit)
-    public import UIKit
+	public import UIKit
 #endif
 #if canImport(AppKit)
-    public import AppKit
+	public import AppKit
 #endif
 
 // MARK: - QuickAction
@@ -163,6 +163,37 @@ public enum QuickActions {
     /// Adopt with `@UIApplicationDelegateAdaptor(QuickActionsAppDelegate.self)`.
     public final class QuickActionsAppDelegate: NSObject, UIApplicationDelegate {
 
+        /// Files opened before a handler is set (e.g. a cold launch via "Open
+        /// With") are queued and delivered as soon as it is.
+        @MainActor private static var pendingOpenURLs: [URL] = []
+
+        /// A handler for files opened with, or dropped onto, the app. Set it to
+        /// treat "open file" as an in-app action (e.g. an import) instead of
+        /// letting the system spawn a document window.
+        @MainActor public static var openURLsHandler: (([URL]) -> Void)? {
+            didSet {
+                guard let handler = openURLsHandler, pendingOpenURLs.isEmpty == false else { return }
+                let urls = pendingOpenURLs
+                pendingOpenURLs = []
+                handler(urls)
+            }
+        }
+
+        public func application(
+            _ app: UIApplication,
+            open url: URL,
+            options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+        ) -> Bool {
+            MainActor.assumeIsolated {
+                if let handler = Self.openURLsHandler {
+                    handler([url])
+                } else {
+                    Self.pendingOpenURLs.append(url)
+                }
+                return true
+            }
+        }
+
         public func application(
             _ application: UIApplication,
             didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
@@ -189,6 +220,64 @@ public enum QuickActions {
     ///
     /// Adopt with `@NSApplicationDelegateAdaptor(QuickActionsAppDelegate.self)`.
     public final class QuickActionsAppDelegate: NSObject, NSApplicationDelegate {
+        /// Files opened before a handler is set (e.g. a cold launch via "Open
+        /// With") are queued and delivered as soon as it is.
+        @MainActor private static var pendingOpenURLs: [URL] = []
+
+        /// A handler for files opened with, or dropped onto, the app. Set it to
+        /// treat "open file" as an in-app action (e.g. an import) instead of
+        /// letting the system spawn a document window. Receives every file from a
+        /// multi-file open in a single call.
+        @MainActor public static var openURLsHandler: (([URL]) -> Void)? {
+            didSet {
+                guard let handler = openURLsHandler, pendingOpenURLs.isEmpty == false else { return }
+                let urls = pendingOpenURLs
+                pendingOpenURLs = []
+                handler(urls)
+            }
+        }
+
+        public func application(_ application: NSApplication, open urls: [URL]) {
+            MainActor.assumeIsolated {
+                if let handler = Self.openURLsHandler {
+                    handler(urls)
+                } else {
+                    Self.pendingOpenURLs.append(contentsOf: urls)
+                }
+            }
+        }
+
+        /// Activities delivered before a handler is set (e.g. a cold launch from
+        /// Spotlight) are queued and delivered as soon as it is.
+        @MainActor private static var pendingUserActivities: [NSUserActivity] = []
+
+        /// A handler for incoming `NSUserActivity` — most notably a tapped Spotlight
+        /// result (`CSSearchableItemActionType`), which SwiftUI's
+        /// `.onContinueUserActivity` doesn't reliably deliver on macOS.
+        @MainActor public static var continueUserActivityHandler: ((NSUserActivity) -> Void)? {
+            didSet {
+                guard let handler = continueUserActivityHandler, pendingUserActivities.isEmpty == false else { return }
+                let activities = pendingUserActivities
+                pendingUserActivities = []
+                activities.forEach(handler)
+            }
+        }
+
+        public func application(
+            _ application: NSApplication,
+            continue userActivity: NSUserActivity,
+            restorationHandler: @escaping ([any NSUserActivityRestoring]) -> Void
+        ) -> Bool {
+            MainActor.assumeIsolated {
+                if let handler = Self.continueUserActivityHandler {
+                    handler(userActivity)
+                } else {
+                    Self.pendingUserActivities.append(userActivity)
+                }
+                return true
+            }
+        }
+
         public func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
             QuickActions.dockMenu()
         }

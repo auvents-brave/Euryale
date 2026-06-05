@@ -24,6 +24,10 @@ var prods: [Product] = [
         name: "Euryale",
         targets: ["Euryale"]
     ),
+    .library(
+        name: "HelpKit",
+        targets: ["HelpKit"]
+    ),
 ]
 
 var deps: [Package.Dependency] = [
@@ -46,6 +50,11 @@ var deps: [Package.Dependency] = [
 	.package(
 		url: "https://github.com/nalexn/ViewInspector",
 		from: "0.10.0"
+	),
+	.package(
+		// Markdown rendering for the in-app help browser (HelpKit).
+		url: "https://github.com/gonzalezreal/swift-markdown-ui",
+		from: "2.4.0"
 	),
 ]
 
@@ -82,6 +91,14 @@ var targs: [Target] = [
 	resources: [
 		.process("Resources")
 	],
+	swiftSettings: swiftSettings
+  ),
+  .target(
+	name: "HelpKit",
+	dependencies: [
+		.product(name: "MarkdownUI", package: "swift-markdown-ui"),
+	],
+	path: "Sources/HelpKit",
 	swiftSettings: swiftSettings
   ),
 ]

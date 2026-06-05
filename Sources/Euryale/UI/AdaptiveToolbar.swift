@@ -498,10 +498,19 @@ private struct GlassCapsuleBackground: ViewModifier {
     func body(content: Content) -> some View {
         if !isEnabled {
             content
-        } else if #available(iOS 26.0, macOS 26.0, tvOS 26.0, watchOS 26.0, visionOS 26.0, *) {
-            content.glassEffect(.regular, in: Capsule())
         } else {
-            content.background(.ultraThinMaterial, in: Capsule())
+            // `glassEffect` is unavailable on visionOS (Liquid Glass is the
+            // system default there), so gate it out at compile time and fall
+            // back to the material capsule.
+            #if os(visionOS)
+                content.background(.ultraThinMaterial, in: Capsule())
+            #else
+                if #available(iOS 26.0, macOS 26.0, tvOS 26.0, watchOS 26.0, *) {
+                    content.glassEffect(.regular, in: Capsule())
+                } else {
+                    content.background(.ultraThinMaterial, in: Capsule())
+                }
+            #endif
         }
     }
 }

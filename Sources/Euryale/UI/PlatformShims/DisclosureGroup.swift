@@ -25,6 +25,11 @@
         private let content: () -> Content
         private let label: () -> Label
 
+        /// Creates a disclosure group.
+        /// - Parameters:
+        ///   - isExpanded: Binding driving whether the content is revealed.
+        ///   - content: The content shown when expanded.
+        ///   - label: The always-visible label that toggles expansion.
         public init(
             isExpanded: Binding<Bool>,
             @ViewBuilder content: @escaping () -> Content,

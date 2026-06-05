@@ -55,87 +55,87 @@ public struct PopupPresenter<Trigger: View, PresentedContent: View>: View {
         self.presentedContent = presentedContent
     }
 
-	// MARK: Body
+    // MARK: Body
 
-	public var body: some View {
-		Button {
-			isPresented = true
-		} label: {
-			trigger()
+    public var body: some View {
+        Button {
+            isPresented = true
+        } label: {
+            trigger()
 #if os(tvOS)
-				.padding(.horizontal, 20)
-				.padding(.vertical, 12)
-				.contentShape(Rectangle())
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .contentShape(Rectangle())
 #endif
-		}
+        }
 #if os(tvOS)
-		.buttonStyle(.card)
-		.focusable(true)
+        .buttonStyle(.card)
+        .focusable(true)
 #endif
-		.modifier(
-			PopupPresentationModifier(
-				isPresented: $isPresented,
-				popupContent: popupBody
-			)
-		)
-	}
+        .modifier(
+            PopupPresentationModifier(
+                isPresented: $isPresented,
+                popupContent: popupBody
+            )
+        )
+    }
 
-	// MARK: Helpers
+    // MARK: Helpers
 
-	@ViewBuilder
-	private var popupBody: some View {
-		presentedContent()
-			.frame(
-				width: usesConstrainedSize ? regularWidth : nil,
-				height: usesConstrainedSize ? regularHeight : nil
-			)
+    @ViewBuilder
+    private var popupBody: some View {
+        presentedContent()
+            .frame(
+                width: usesConstrainedSize ? regularWidth : nil,
+                height: usesConstrainedSize ? regularHeight : nil
+            )
 #if os(iOS)
-			.presentationCompactAdaptation(.sheet)
-			.presentationDetents([.medium, .large])
-			.presentationDragIndicator(.visible)
+            .presentationCompactAdaptation(.sheet)
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
 #endif
-	}
+    }
 
-	private var usesConstrainedSize: Bool {
+    private var usesConstrainedSize: Bool {
 #if os(iOS)
-		horizontalSizeClass != .compact
+        horizontalSizeClass != .compact
 #else
-		true
+        true
 #endif
-	}
+    }
 
-	private static var defaultRegularWidth: CGFloat {
+    private static var defaultRegularWidth: CGFloat {
 #if os(visionOS)
-		720
+        720
 #else
-		400
+        400
 #endif
-	}
+    }
 
-	private static var defaultRegularHeight: CGFloat {
+    private static var defaultRegularHeight: CGFloat {
 #if os(visionOS)
-		900
+        900
 #else
-		500
+        500
 #endif
-	}
+    }
 }
 
 // MARK: - PopupPresentationModifier
 
 private struct PopupPresentationModifier<PopupContent: View>: ViewModifier {
-	@Binding var isPresented: Bool
-	let popupContent: PopupContent
+    @Binding var isPresented: Bool
+    let popupContent: PopupContent
 
-	func body(content: Content) -> some View {
+    func body(content: Content) -> some View {
 #if os(tvOS) || os(watchOS)
-		content.sheet(isPresented: $isPresented) {
-			popupContent
-		}
+        content.sheet(isPresented: $isPresented) {
+            popupContent
+        }
 #else
-		content.popover(isPresented: $isPresented) {
-			popupContent
-		}
+        content.popover(isPresented: $isPresented) {
+            popupContent
+        }
 #endif
-	}
+    }
 }

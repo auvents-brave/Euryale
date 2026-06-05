@@ -26,6 +26,7 @@
 
         // MARK: Initialisers (same signatures as SwiftUI.Slider)
 
+        /// Creates a continuous slider over `0...1`.
         public init(
             value: Binding<Double>,
             onEditingChanged: @escaping (Bool) -> Void = { _ in }
@@ -33,6 +34,7 @@
             self.init(value: value, in: 0...1, onEditingChanged: onEditingChanged)
         }
 
+        /// Creates a continuous slider over the given bounds.
         public init(
             value: Binding<Double>,
             in bounds: ClosedRange<Double> = 0...1,
@@ -44,6 +46,7 @@
             self.onEditingChanged = onEditingChanged
         }
 
+        /// Creates a stepped slider over `0...1`.
         public init(
             value: Binding<Double>,
             step: Double,
@@ -52,6 +55,7 @@
             self.init(value: value, in: 0...1, step: step, onEditingChanged: onEditingChanged)
         }
 
+        /// Creates a stepped slider over the given bounds.
         public init(
             value: Binding<Double>,
             in bounds: ClosedRange<Double> = 0...1,

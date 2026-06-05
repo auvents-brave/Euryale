@@ -116,7 +116,7 @@ import ViewInspector
     @Test func `Slider has expected identifier`() throws {
         @State var value = 0.5
         let v = Slider(value: $value, in: 0...1, step: 0.1)
-        _ = try v.inspect().find(viewWithAccessibilityIdentifier: "Slider.list")
+        _ = try v.inspect().find(viewWithAccessibilityIdentifier: "Slider.track")
     }
     #endif
 }
