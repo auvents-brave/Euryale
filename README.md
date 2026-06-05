@@ -4,7 +4,9 @@
 
 Euryale is a small Swift package collecting higher-level helpers built on top of MapKit, MetalKit, PDFKit, WebKit, TextKit, Core Location and Vision. It complements [Sthenô](https://github.com/auvents-brave/Stheno) (pure-Swift cross-platform building blocks) with Apple-platform-specific views, view modifiers and extensions, designed to be adopted piecemeal across apps.
 
-Euryale depends on [Sthenô](https://github.com/auvents-brave/Stheno) for cross-platform foundations and on [swift-log](https://github.com/apple/swift-log) for structured logging, keeping the overall dependency footprint minimal.
+The package vends two libraries: **`Euryale`** — the Apple-platform views, view modifiers and extensions described below — and **`HelpKit`** — a standalone, MarkdownUI-backed in-app help browser (see [In-app help](#in-app-help-helpkit)). Depend on either or both.
+
+Euryale depends on [Sthenô](https://github.com/auvents-brave/Stheno) for cross-platform foundations and on [swift-log](https://github.com/apple/swift-log) for structured logging. The separate `HelpKit` product additionally uses [swift-markdown-ui](https://github.com/gonzalezreal/swift-markdown-ui) to render help articles; the core `Euryale` library keeps its dependency footprint minimal.
 
 Continuous Integration (CI) is handled through GitHub Actions, which automatically builds, tests, generates documentation, and analyses the codebase using CodeQL and SonarQube to ensure quality, consistency, and cross-platform reliability.
 
@@ -36,8 +38,10 @@ Documentation is available directly in Xcode and VS Code, and [online](https://a
 
 A SwiftUI-friendly `MKMapView` wrapper plus a popup variant that pairs an embedded map with an "Open in Maps" button. Both accept any number of cached XYZ/TMS raster tile overlays — OpenStreetMap, OpenTopoMap, OpenSeaMap, IGN France, Cassini, NOAA, etc. — stacked on top of the Apple Maps base layer.
 
-- [`MapKitView`](https://auvents-brave.github.io/Euryale/documentation/euryale/mapkitview/) — Cross-platform `MKMapView` SwiftUI wrapper with on-disk-cached XYZ/TMS tile overlays (configurable cache age and optional App Group container for cross-app sharing).
+- [`MapKitView`](https://auvents-brave.github.io/Euryale/documentation/euryale/mapkitview/) — Cross-platform `MKMapView` SwiftUI wrapper with on-disk-cached XYZ/TMS tile overlays (configurable cache age and optional App Group container for cross-app sharing). Optionally renders a styled overlay layer of markers and tracks with tap selection.
 - [`PopupMapView`](https://auvents-brave.github.io/Euryale/documentation/euryale/popupmapview/) — Pre-built popover that embeds a `MapKitView` and an "Open in Maps" escape hatch. Adapts gracefully to watchOS (direct Maps launch) and tvOS (no Open-in-Maps button).
+- [`MapMarker`](https://auvents-brave.github.io/Euryale/documentation/euryale/mapmarker/) — A styled, identifiable map annotation (coordinate, label, opacity) for the markable overlay layer.
+- [`MapTrack`](https://auvents-brave.github.io/Euryale/documentation/euryale/maptrack/) and [`MapTrackStyle`](https://auvents-brave.github.io/Euryale/documentation/euryale/maptrackstyle/) — A polyline track overlay with a configurable line style.
 
 ### Web content
 
@@ -59,12 +63,19 @@ A SwiftUI-friendly `MKMapView` wrapper plus a popup variant that pairs an embedd
 - [`AdaptiveToolbar`](https://auvents-brave.github.io/Euryale/documentation/euryale/adaptivetoolbar/) — A custom cross-platform toolbar that mirrors the system toolbars: each action shows as an icon or icon + label, labels collapse to icons as space tightens, and the tightest layouts fold trailing actions into an overflow menu/popover. Supports grouped sections (e.g. a leading radio-style selector followed by commands) and Liquid Glass where available. Configured with [`ToolbarAction`](https://auvents-brave.github.io/Euryale/documentation/euryale/toolbaraction/) values, using [`ToolbarShareItem`](https://auvents-brave.github.io/Euryale/documentation/euryale/toolbarshareitem/) for share actions.
 - [`Pill`](https://auvents-brave.github.io/Euryale/documentation/euryale/pill/) and [`PillsView`](https://auvents-brave.github.io/Euryale/documentation/euryale/pillsview/) — Compact label-and-value badges, each with an optional leading SF Symbol icon, and an adaptive horizontal/vertical layout container.
 - [`PaginatedPill`](https://auvents-brave.github.io/Euryale/documentation/euryale/paginatedpill/) — Generic paginated pill container that shows one page of arbitrary content at a time, with tap-to-jump indicator dots and horizontal swipe-to-navigate. Configurable layout: `.overlay` (default — content full-bleed, dots floating, e.g. bottom-trailing) or `.stacked` (dots below content). Indicators use the SwiftUI environment tint (override via `accentColor:`) on legacy systems; on OS 26+ they pick up the Liquid Glass material with no colour tint at all (active/inactive distinguished by size + outline opacity).
+- [`PaginatedView`](https://auvents-brave.github.io/Euryale/documentation/euryale/paginatedview/) — The generic paged container behind `PaginatedPill`, factored out for reuse: shows one page of arbitrary content at a time with indicator dots and swipe-to-navigate.
+- [`IconLabel`](https://auvents-brave.github.io/Euryale/documentation/euryale/iconlabel/) — A compact horizontal pairing of an SF Symbol and a text title, sizing to its content.
 - [`StatusPill`](https://auvents-brave.github.io/Euryale/documentation/euryale/statuspill/) — Status badge pairing an SF Symbol with a short label, tinted by semantic status: [`.ok`](https://auvents-brave.github.io/Euryale/documentation/euryale/statuspill/status-swift.enum/ok) (green check), [`.warning`](https://auvents-brave.github.io/Euryale/documentation/euryale/statuspill/status-swift.enum/warning) (yellow triangle), [`.error`](https://auvents-brave.github.io/Euryale/documentation/euryale/statuspill/status-swift.enum/error) (red cross).
 - [`BouncingView`](https://auvents-brave.github.io/Euryale/documentation/euryale/bouncingview/) — Tap-to-bounce micro-animation modifier, especially useful on tvOS where focus controls need extra feedback.
 - [`Slider`](https://auvents-brave.github.io/Euryale/documentation/euryale/slider/) — Replacement for `SwiftUI.Slider` on tvOS (where it is unavailable): a focusable `ProgressView` track nudged left/right with the Siri Remote, with the same public API.
 - [`DisclosureGroup`](https://auvents-brave.github.io/Euryale/documentation/euryale/disclosuregroup/) — A tvOS / watchOS replacement for SwiftUI's `DisclosureGroup` (unavailable there): a button that toggles a chevron and reveals its content below. Mirrors the `init(isExpanded:content:label:)` API.
 - [`PopupPresenter`](https://auvents-brave.github.io/Euryale/documentation/euryale/popuppresenter/) — Generic popover / sheet driver used by `PopupMapView` and `PopupWebView`. Use it to build your own inline expandable UI.
 - [`PreferredAvailableButtonStyle()`](https://auvents-brave.github.io/Euryale/documentation/euryale/swiftuicore/view/preferredavailablebuttonstyle()) — `View` modifier that picks the most modern button style available on the running OS (Liquid Glass on OS 26 +, bordered-prominent before).
+
+### Photo galleries
+
+- [`TaggedPhoto`](https://auvents-brave.github.io/Euryale/documentation/euryale/taggedphoto/) and [`TaggedPhotoGallery`](https://auvents-brave.github.io/Euryale/documentation/euryale/taggedphotogallery/) — A reusable gallery of photos paired with Vision image-classification labels.
+- [`ScatteredPhotosView`](https://auvents-brave.github.io/Euryale/documentation/euryale/scatteredphotosview/) — Lays images out as physical prints scattered on a surface, for a playful "pile of photos" presentation.
 
 ### Siri tips
 
@@ -76,6 +87,7 @@ A SwiftUI-friendly `MKMapView` wrapper plus a popup variant that pairs an embedd
 - [`NetworkAddressView`](https://auvents-brave.github.io/Euryale/documentation/euryale/networkaddressview/) — An address input supporting IPv4, optional IPv6, and optional in-place domain-name resolution (by default via Sthenô's `DomainResolver`).
 - [`IPAddressField`](https://auvents-brave.github.io/Euryale/documentation/euryale/ipaddressfield/) — A text field filtered and formatted to a specific format (`.ipv4` with octet clamping and auto-dot insertion, `.ipv6`, or `.port`).
 - [`NetworkProtocolView`](https://auvents-brave.github.io/Euryale/documentation/euryale/networkprotocolview/) — A selector for [`NetworkProtocol`](https://auvents-brave.github.io/Euryale/documentation/euryale/networkprotocol/) (TCP / UDP / …) that adapts its presentation to the number of options.
+- [`URLField`](https://auvents-brave.github.io/Euryale/documentation/euryale/urlfield/) — A URL text field that trims input and validates it live against a configurable set of schemes (defaults to `http`/`https`/`ws`/`wss`; widen it to e.g. `tcp`/`udp` for non-web transports).
 
 ### Home Screen and Dock quick actions
 
@@ -85,6 +97,7 @@ A SwiftUI-friendly `MKMapView` wrapper plus a popup variant that pairs an embedd
 
 - [`CLLocation.Name()`](https://auvents-brave.github.io/Euryale/documentation/euryale/corelocation/cllocation/name()) — Async reverse geocoding helper that returns a single human-readable name. Uses the modern `PlaceDescriptor` API on OS 26 + and falls back to `CLPlacemark` on older systems.
 - [`CLLocation.AtSea()`](https://auvents-brave.github.io/Euryale/documentation/euryale/corelocation/cllocation/atsea()) — Async predicate that returns `true` when a coordinate is over an ocean / sea / large body of water.
+- [`String.Coordinate(near:)`](https://auvents-brave.github.io/Euryale/documentation/euryale/swift/string/coordinate(near:)) — Async forward geocoding that returns the coordinate of the best match for an address string, optionally biased near a given coordinate.
 
 ### Image classification
 
@@ -99,8 +112,21 @@ A SwiftUI-friendly `MKMapView` wrapper plus a popup variant that pairs an embedd
 
 ### iCloud sync
 
-- [`UserDefaultsCloudSync`](https://auvents-brave.github.io/Euryale/documentation/euryale/userdefaultscloudsync/) — Mirrors `UserDefaults` with `NSUbiquitousKeyValueStore` (optionally filtered by key prefix) so settings flow between a user's devices via iCloud.
+- [`CloudKeyValueStore`](https://auvents-brave.github.io/Euryale/documentation/euryale/cloudkeyvaluestore/) — A typed, main-actor wrapper around iCloud's `NSUbiquitousKeyValueStore`, delivering external changes through a callback that carries only the keys that changed. Preferred when an app owns its own typed settings model.
+- [`UserDefaultsCloudSync`](https://auvents-brave.github.io/Euryale/documentation/euryale/userdefaultscloudsync/) — Mirrors `UserDefaults` with `NSUbiquitousKeyValueStore` (optionally filtered by key prefix) so settings flow between a user's devices via iCloud. Use this to shadow an existing `UserDefaults` model transparently.
+
+### Secure storage
+
+- [`KeychainStore`](https://auvents-brave.github.io/Euryale/documentation/euryale/keychainstore/) — A small, typed wrapper around the system Keychain for per-item secrets (tokens, passwords) keyed by a stable string, marked synchronizable so they ride iCloud Keychain — mirroring how `CloudKeyValueStore` handles non-secret settings.
 
 ### Cross-platform aliases
 
 - [`OSApplication`](https://auvents-brave.github.io/Euryale/documentation/euryale/osapplication), [`OSView`](https://auvents-brave.github.io/Euryale/documentation/euryale/osview), [`OSColor`](https://auvents-brave.github.io/Euryale/documentation/euryale/oscolor), [`OSImage`](https://auvents-brave.github.io/Euryale/documentation/euryale/osimage), [`OSFont`](https://auvents-brave.github.io/Euryale/documentation/euryale/osfont) — `WKExtension` / `UIApplication` / `NSApplication` family of native typealiases, plus `OSApplication.osShared` to get the shared instance, so shared code can avoid `#if` blocks at every reference site.
+
+### In-app help (HelpKit)
+
+A separate **`HelpKit`** library product (import it independently of `Euryale`) renders a searchable, MarkdownUI-backed help browser from a structured topic tree — a single Markdown source can drive both the in-app help and an online mirror.
+
+- [`HelpBrowser`](https://auvents-brave.github.io/Euryale/documentation/helpkit/helpbrowser/) — SwiftUI browser that presents a `HelpBook` as a navigable, searchable topic list with Markdown-rendered articles.
+- [`HelpBook`](https://auvents-brave.github.io/Euryale/documentation/helpkit/helpbook/) — A tree of help topics, with a loader to build a book from bundled Markdown resources and a nested `LoadingError` for failures.
+- [`HelpTopic`](https://auvents-brave.github.io/Euryale/documentation/helpkit/helptopic/) — An identifiable help article (title, keywords, Markdown body and child topics), flattenable for search.
