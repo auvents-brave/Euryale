@@ -7,7 +7,7 @@
     /// `MKMapViewDelegate` for ``MapKitView``: renders the cached tile overlays
     /// and — added by `MapKitView+Markers` — the styled polylines (``MapTrack``)
     /// and image markers (``MapMarker``).
-    class MapDelegate: OSDelegate, MKMapViewDelegate {
+    class MapDelegate: PlatformDelegate, MKMapViewDelegate {
 
         /// Stroke style per polyline overlay, keyed by object identity, set by the
         /// markable representable when it adds the track overlays. The `isHalo`
@@ -16,6 +16,11 @@
 
         /// Called with a tapped marker's id, set by the markable representable.
         var onSelect: ((AnyHashable) -> Void)?
+
+        /// Called whenever the visible region changes (pan / zoom / **rotate**), set
+        /// by the markable representable so it can keep directional markers aligned
+        /// to the chart when the map is rotated.
+        var onRegionChange: ((MKMapView) -> Void)?
 
         /// Provides a renderer for tile overlays and styled polylines.
         /// - Parameters:
@@ -29,7 +34,7 @@
             }
             if let polyline = overlay as? MKPolyline,
                let entry = trackStyles[ObjectIdentifier(polyline)] {
-                let base = OSColor(entry.style.color)
+                let base = PlatformColor(entry.style.color)
                 if entry.isHalo {
                     let renderer = MKPolylineRenderer(polyline: polyline)
                     renderer.strokeColor = base.withAlphaComponent(0.22)
@@ -69,6 +74,12 @@
             view.image = marker.image
             view.centerOffset = marker.centerOffset
             return view
+        }
+
+        /// Notifies the representable of region changes so it can re-orient
+        /// directional markers when the map is rotated.
+        func mapViewDidChangeVisibleRegion(_ mapView: MKMapView) {
+            onRegionChange?(mapView)
         }
 
         /// Reports a tapped marker, then immediately deselects it so tapping the

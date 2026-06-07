@@ -140,7 +140,10 @@ public struct PaginatedView<Page: Identifiable, Content: View>: View {
         pageStack
             .frame(maxWidth: .infinity, alignment: .leading)
             .overlay(alignment: indicatorAlignment) {
+                // Inset the dots from the content edge so they sit *on* the content
+                // (and stay clear of rounded corners) rather than flush to the rim.
                 indicatorRow
+                    .padding(10)
             }
     }
 

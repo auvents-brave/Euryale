@@ -4,23 +4,24 @@ public import SwiftUI
 
 /// A compact horizontal pairing of an SF Symbol and a text title.
 ///
-/// `IconLabel` exists for the places where SwiftUI's own `Label` won't render
-/// its icon — most notably inside a **segmented `Picker` on macOS**, which drops
-/// a `Label`'s glyph and shows the title only. Because `IconLabel` is a plain
-/// `HStack` of an `Image` and a `Text`, both always appear, so it can stand in
-/// for `Label` as a picker segment or in any custom control (a button row, a
-/// chip, a toolbar item).
+/// `IconLabel` is just an `HStack` of an `Image` and a `Text`, so **both always
+/// appear** — useful as a `Picker` row, a button, a chip or any custom control
+/// where you want the glyph guaranteed beside the title (some menus and `Picker`
+/// styles render only a `Label`'s text and drop its icon).
+///
+/// > Note: it does *not* help inside a `.segmented` `Picker` — a segmented
+/// > control shows one `Text` *or* one `Image` per segment, never a composed
+/// > view. For an icon + label segmented control, use ``IconSegmentedControl``.
 ///
 /// The title is a `LocalizedStringKey`, so string literals are localised from
 /// the String Catalog automatically.
 ///
 /// ```swift
-/// Picker("Filter", selection: $filter) {
-///     ForEach(Filter.allCases) { filter in
-///         IconLabel(filter.title, systemImage: filter.systemImage).tag(filter)
+/// Picker("Kind", selection: $kind) {
+///     ForEach(Kind.allCases) { kind in
+///         IconLabel(kind.title, systemImage: kind.systemImage).tag(kind)
 ///     }
 /// }
-/// .pickerStyle(.segmented)
 /// ```
 public struct IconLabel: View {
 
@@ -67,42 +68,50 @@ public struct IconLabel: View {
 
 // MARK: - Previews
 
-#Preview("Standalone") {
-    VStack(alignment: .leading, spacing: 12) {
-        IconLabel("Marks", systemImage: "mappin.and.ellipse")
-        IconLabel("Routes", systemImage: "point.topleft.down.to.point.bottomright.curvepath")
-        IconLabel("Traces", systemImage: "scribble.variable")
-    }
-    .padding()
-}
-
-// The segmented picker style is unavailable on watchOS and tvOS.
-#if !os(watchOS) && !os(tvOS)
-#Preview("In a segmented Picker") {
-    enum Filter: String, CaseIterable, Identifiable {
-        case all, marks, routes
-        var id: String { rawValue }
-        var title: LocalizedStringKey { LocalizedStringKey(rawValue.capitalized) }
-        var systemImage: String {
-            switch self {
-            case .all: "square.grid.2x2"
-            case .marks: "mappin.and.ellipse"
-            case .routes: "point.topleft.down.to.point.bottomright.curvepath"
-            }
+#if DEBUG
+    #Preview("Standalone") {
+        VStack(alignment: .leading, spacing: 12) {
+            IconLabel("Marks", systemImage: "mappin.and.ellipse")
+            IconLabel("Routes", systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+            IconLabel("Traces", systemImage: "scribble.variable")
         }
+        .padding()
     }
-    struct PickerPreview: View {
-        @State private var filter: Filter = .all
-        var body: some View {
-            Picker("Filter", selection: $filter) {
-                ForEach(Filter.allCases) { filter in
-                    IconLabel(filter.title, systemImage: filter.systemImage).tag(filter)
+
+    /// Hosts the demo so the `#Preview` body is one expression — the `enum` and
+    /// `@State` live at file scope, not inside the macro (which is brittle with
+    /// nested declarations). Mirrors the real use: rows of a default `Picker`.
+    ///
+    /// `internal` (not `private`) so the snapshot test target can render it and
+    /// exercise this preview's view code; it stays inside `#if DEBUG`.
+    struct IconLabelPickerPreview: View {
+        private enum Kind: String, CaseIterable, Identifiable {
+            case marks, routes, traces
+            var id: String { rawValue }
+            var title: LocalizedStringKey { LocalizedStringKey(rawValue.capitalized) }
+            var systemImage: String {
+                switch self {
+                case .marks: "mappin.and.ellipse"
+                case .routes: "point.topleft.down.to.point.bottomright.curvepath"
+                case .traces: "scribble.variable"
                 }
             }
-            .pickerStyle(.segmented)
-            .padding()
+        }
+
+        @State private var kind: Kind = .marks
+
+        var body: some View {
+            Form {
+                Picker("Kind", selection: $kind) {
+                    ForEach(Kind.allCases) { kind in
+                        IconLabel(kind.title, systemImage: kind.systemImage).tag(kind)
+                    }
+                }
+            }
         }
     }
-    return PickerPreview()
-}
+
+    #Preview("In a Picker") {
+        IconLabelPickerPreview()
+    }
 #endif

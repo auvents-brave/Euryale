@@ -108,6 +108,7 @@ targs.append(
     name: "EuryaleTests",
 	dependencies: [
 		"Euryale",
+		"HelpKit",
 		.product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
 		.product(name: "ViewInspector",   package: "ViewInspector"),
 	],

@@ -81,26 +81,28 @@ public struct TaggedPhotoGallery: View {
 
     public var body: some View {
         PaginatedView(pages: photos) { photo in
-            ZStack(alignment: .bottomLeading) {
-                photoImage(photo)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(maxWidth: .infinity)
-                    .clipped()
-                TagFlowLayout(spacing: 4) {
-                    ForEach(topLabels(for: photo), id: \.self) { label in
-                        Text(label)
-                            .font(.caption2)
-                            .lineLimit(1)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .foregroundStyle(pillForeground)
-                            .background(pillColor, in: Capsule())
+            // The image is bounded to the page (both dimensions) and fitted, so the
+            // whole photo shows rather than only its top, and the label pills — an
+            // overlay anchored to the visible bottom — are never pushed off-screen.
+            photoImage(photo)
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay(alignment: .bottomLeading) {
+                    TagFlowLayout(spacing: 4) {
+                        ForEach(topLabels(for: photo), id: \.self) { label in
+                            Text(label)
+                                .font(.caption2)
+                                .lineLimit(1)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .foregroundStyle(pillForeground)
+                                .background(pillColor, in: Capsule())
+                        }
                     }
+                    .padding(8)
                 }
-                .padding(8)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
 
@@ -114,7 +116,7 @@ public struct TaggedPhotoGallery: View {
     }
 
     private func photoImage(_ photo: TaggedPhoto) -> Image {
-        if let osImage = OSImage(data: photo.imageData) {
+        if let osImage = PlatformImage(data: photo.imageData) {
             #if canImport(UIKit)
                 return Image(uiImage: osImage)
             #elseif canImport(AppKit)
@@ -176,3 +178,21 @@ struct TagFlowLayout: Layout {
         }
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+    #Preview("TaggedPhotoGallery") {
+        // Empty image data renders the "photo" placeholder, so the preview shows
+        // the label-pill flow and paging without bundling sample images.
+        TaggedPhotoGallery(
+            photos: [
+                TaggedPhoto(imageData: Data(), tags: ["sea": 0.95, "horizon": 0.6, "sky": 0.4]),
+                TaggedPhoto(imageData: Data(), tags: ["sail": 0.9, "boat": 0.7]),
+            ],
+            pillColor: .blue
+        )
+        .frame(height: 220)
+        .padding()
+    }
+#endif

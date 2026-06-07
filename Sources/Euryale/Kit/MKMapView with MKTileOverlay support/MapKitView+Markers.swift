@@ -187,13 +187,13 @@ public extension MapKitView {
     /// `@objc dynamic` so MapKit animates the marker when the position updates.
     final class MarkerAnnotation: NSObject, MKAnnotation {
         @objc dynamic var coordinate: CLLocationCoordinate2D
-        var image: OSImage
+        var image: PlatformImage
         /// Shifts the view so the glyph (not the labelled image's centre) anchors
         /// on the coordinate.
         var centerOffset: CGPoint
         let key: AnyHashable
 
-        init(key: AnyHashable, coordinate: CLLocationCoordinate2D, image: OSImage, centerOffset: CGPoint) {
+        init(key: AnyHashable, coordinate: CLLocationCoordinate2D, image: PlatformImage, centerOffset: CGPoint) {
             self.key = key
             self.coordinate = coordinate
             self.image = image
@@ -204,7 +204,7 @@ public extension MapKitView {
     enum MapMarkerImage {
 
         private static let glyphBox: CGFloat = 52
-        private static var titleFont: OSFont { .systemFont(ofSize: 11, weight: .semibold) }
+        private static var titleFont: PlatformFont { .systemFont(ofSize: 11, weight: .semibold) }
 
         /// Renders a marker bitmap for the given style, direction, optional title
         /// and opacity, in a UIKit-like top-left, y-down space on every platform.
@@ -218,7 +218,7 @@ public extension MapKitView {
             direction: Double?,
             title: String?,
             opacity: Double
-        ) -> (image: OSImage, centerOffset: CGPoint) {
+        ) -> (image: PlatformImage, centerOffset: CGPoint) {
             var line: CTLine?
             var lineWidth: CGFloat = 0
             if let title, title.isEmpty == false {
@@ -267,8 +267,8 @@ public extension MapKitView {
             _ ctx: CGContext, line: CTLine, lineWidth: CGFloat, width: CGFloat, topY: CGFloat
         ) {
             ctx.saveGState()
-            ctx.setShadow(offset: .zero, blur: 2.5, color: OSColor.black.withAlphaComponent(0.9).cgColor)
-            ctx.setFillColor(OSColor.white.cgColor)
+            ctx.setShadow(offset: .zero, blur: 2.5, color: PlatformColor.black.withAlphaComponent(0.9).cgColor)
+            ctx.setFillColor(PlatformColor.white.cgColor)
             ctx.textMatrix = .identity
             ctx.translateBy(x: (width - lineWidth) / 2, y: topY + titleFont.ascender)
             ctx.scaleBy(x: 1, y: -1)
@@ -279,12 +279,12 @@ public extension MapKitView {
 
         private static func drawDot(_ ctx: CGContext, centre: CGPoint, color: Color) {
             let radius: CGFloat = 7
-            ctx.setFillColor(OSColor.white.cgColor)
+            ctx.setFillColor(PlatformColor.white.cgColor)
             ctx.fillEllipse(in: CGRect(
                 x: centre.x - radius - 2, y: centre.y - radius - 2,
                 width: (radius + 2) * 2, height: (radius + 2) * 2
             ))
-            ctx.setFillColor(OSColor(color).cgColor)
+            ctx.setFillColor(PlatformColor(color).cgColor)
             ctx.fillEllipse(in: CGRect(
                 x: centre.x - radius, y: centre.y - radius,
                 width: radius * 2, height: radius * 2
@@ -295,7 +295,7 @@ public extension MapKitView {
             ctx.saveGState()
             ctx.translateBy(x: centre.x, y: centre.y)
             ctx.rotate(by: CGFloat(direction) * .pi / 180)
-            ctx.setFillColor(OSColor(color).cgColor)
+            ctx.setFillColor(PlatformColor(color).cgColor)
             // Offset outwards from the dot's white ring (radius ~9) so the arrow
             // sits just clear of the circle.
             let triangle = CGMutablePath()
@@ -323,20 +323,20 @@ public extension MapKitView {
             ctx.addPath(hull)
             ctx.setLineWidth(3)
             ctx.setLineJoin(.round)
-            ctx.setStrokeColor(OSColor.white.cgColor)
+            ctx.setStrokeColor(PlatformColor.white.cgColor)
             ctx.strokePath()
             ctx.addPath(hull)
-            ctx.setFillColor(OSColor(color).cgColor)
+            ctx.setFillColor(PlatformColor(color).cgColor)
             ctx.fillPath()
             ctx.restoreGState()
         }
 
         #if canImport(UIKit)
-            private static func render(size: CGSize, _ draw: (CGContext) -> Void) -> OSImage {
+            private static func render(size: CGSize, _ draw: (CGContext) -> Void) -> PlatformImage {
                 UIGraphicsImageRenderer(size: size).image { ctx in draw(ctx.cgContext) }
             }
         #elseif canImport(AppKit)
-            private static func render(size: CGSize, _ draw: (CGContext) -> Void) -> OSImage {
+            private static func render(size: CGSize, _ draw: (CGContext) -> Void) -> PlatformImage {
                 let image = NSImage(size: size)
                 image.lockFocus()
                 if let ctx = NSGraphicsContext.current?.cgContext {
@@ -439,6 +439,13 @@ public extension MapKitView {
         private var annotations: [AnyHashable: MarkerAnnotation] = [:]
         private var overlays: [AnyHashable: (halo: MKPolyline, core: MKPolyline)] = [:]
         private var pointCounts: [AnyHashable: Int] = [:]
+        /// The most recently applied markers, kept so directional glyphs can be
+        /// re-rendered against a new map rotation without a SwiftUI update.
+        private var lastMarkers: [MapMarker] = []
+        /// The map rotation (degrees) the marker images were last rendered for.
+        private var renderedHeading: Double = 0
+        /// Whether the rotation-tracking callback has been installed.
+        private var observingRegion = false
 
         func apply(
             markers: [MapMarker],
@@ -449,6 +456,12 @@ public extension MapKitView {
             zoomSpan: Double,
             on map: MKMapView
         ) {
+            // Install the rotation observer once, so directional markers stay
+            // aligned to the chart when the user rotates the map.
+            if !observingRegion {
+                observingRegion = true
+                mapDelegate.onRegionChange = { [weak self] map in self?.headingDidChange(on: map) }
+            }
             // Centre FIRST, so a marker added below lands inside the visible
             // region and MapKit creates its annotation view immediately. (When
             // the marker is added off-screen and the camera never moves again,
@@ -483,12 +496,33 @@ public extension MapKitView {
             applyMarkers(markers, on: map)
         }
 
+        /// Re-renders the directional markers when the map's rotation changes, so a
+        /// boat hull keeps pointing along its true heading on the chart instead of
+        /// staying fixed to the screen. Gated on a meaningful heading delta so pans
+        /// and zooms (which also change the visible region) don't re-render.
+        private func headingDidChange(on map: MKMapView) {
+            let heading = map.camera.heading
+            guard abs(heading - renderedHeading) > 0.25 else { return }
+            applyMarkers(lastMarkers, on: map)
+        }
+
         private func applyMarkers(_ markers: [MapMarker], on map: MKMapView) {
+            lastMarkers = markers
+            // Counter-rotate directional glyphs by the map's rotation so they stay
+            // aligned to true north on the chart; the label stays upright because
+            // it is drawn separately from the rotated glyph.
+            let heading = map.camera.heading
+            renderedHeading = heading
             var seen = Set<AnyHashable>()
             for marker in markers {
                 seen.insert(marker.id)
+                let glyphDirection: Double?
+                switch marker.style {
+                case .boatHull: glyphDirection = (marker.direction ?? 0) - heading
+                default:        glyphDirection = marker.direction.map { $0 - heading }
+                }
                 let rendered = MapMarkerImage.make(
-                    style: marker.style, direction: marker.direction,
+                    style: marker.style, direction: glyphDirection,
                     title: marker.title, opacity: marker.opacity
                 )
                 let coordinate = CLLocationCoordinate2D(marker.coordinate)

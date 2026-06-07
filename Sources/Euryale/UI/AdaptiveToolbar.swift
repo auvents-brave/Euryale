@@ -193,12 +193,24 @@ public struct AdaptiveToolbar: View {
             // would bleed past the bar.
             .padding(.horizontal, showsBackground ? 28 : 0)
             .padding(.vertical, showsBackground ? 8 : 0)
+        #elseif os(macOS)
+            // Embedded in the native window toolbar (`showsBackground == false`)
+            // the system draws its own rounded capsule around the principal item.
+            // Inset the row so a selected button's highlight stays clear of that
+            // capsule's rounded ends instead of bleeding past them, and clip to a
+            // matching capsule so nothing overflows the bar.
+            .padding(.horizontal, showsBackground ? 10 : 8)
+            .padding(.vertical, showsBackground ? 5 : 0)
         #else
             .padding(.horizontal, showsBackground ? 10 : 0)
             .padding(.vertical, showsBackground ? 5 : 0)
         #endif
         .modifier(GlassCapsuleBackground(isEnabled: showsBackground))
         #if os(tvOS)
+            .clipShape(Capsule())
+        #elseif os(macOS)
+            // Clip the highlight to a capsule when in the native toolbar, so the
+            // selected button can never poke past the system bar's rounded ends.
             .clipShape(Capsule())
         #endif
         .accessibilityIdentifier("AdaptiveToolbar")

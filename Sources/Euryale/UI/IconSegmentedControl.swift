@@ -27,7 +27,6 @@ public import SwiftUI
 /// )
 /// ```
 public struct IconSegmentedControl<Value: Hashable>: View {
-
     // MARK: Properties
 
     @Binding private var selection: Value
@@ -80,6 +79,7 @@ public struct IconSegmentedControl<Value: Hashable>: View {
                 // No `foregroundStyle` on the icon: it keeps its own rendering
                 // mode (multicolour) inherited from the environment.
                 Image(systemName: systemImage(value))
+                    .symbolRenderingMode(.hierarchical)
                 label(value)
                     .lineLimit(1)
                     .foregroundStyle(isSelected ? Color.white : Color.primary)
@@ -124,7 +124,7 @@ public struct IconSegmentedControl<Value: Hashable>: View {
                 systemImage: { $0.systemImage },
                 label: { Text($0.title) }
             )
-            .symbolRenderingMode(.multicolor)
+            .symbolRenderingMode(.hierarchical)
             .padding()
         }
     }

@@ -94,4 +94,22 @@
             children.isEmpty ? nil : children
         }
     }
+
+    #Preview("HelpBrowser") {
+        HelpBrowser(book: HelpBook(topics: [
+            HelpTopic(
+                id: "getting-started",
+                title: "Getting started",
+                body: "Welcome to **Thoosa**.\n\nConnect to your boat and watch the instruments come alive."
+            ),
+            HelpTopic(
+                id: "logbook",
+                title: "Logbook",
+                body: "Record a voyage and review its entries.",
+                children: [
+                    HelpTopic(id: "logbook-units", title: "Units", body: "Choose nautical miles, knots and more."),
+                ]
+            ),
+        ]))
+    }
 #endif
