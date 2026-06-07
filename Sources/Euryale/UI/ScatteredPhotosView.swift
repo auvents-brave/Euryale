@@ -20,7 +20,7 @@ import Foundation
 ///     .frame(height: 480)
 /// ```
 public struct ScatteredPhotosView: View {
-    private let images: [OSImage]
+    private let images: [PlatformImage]
     private let seed: UInt64
     private let maxAngle: Double
     private let spread: CGFloat
@@ -38,7 +38,7 @@ public struct ScatteredPhotosView: View {
     ///   - borderWidth: Width of the white paper border around each print.
     ///   - curl: Strength of the paper curl and sheen, `0` (flat) to `1`.
     public init(
-        images: [OSImage],
+        images: [PlatformImage],
         seed: UInt64 = 7,
         maxAngle: Double = 16,
         spread: CGFloat = 0.55,
@@ -109,7 +109,7 @@ public struct ScatteredPhotosView: View {
 /// A single print: the image filling a paper card with a white border, a curl
 /// sheen and a drop shadow.
 private struct PhotoCard: View {
-    let image: OSImage
+    let image: PlatformImage
     let longestSide: CGFloat
     let borderWidth: CGFloat
     let curl: Double
@@ -198,9 +198,9 @@ private struct SeededGenerator: RandomNumberGenerator {
     /// something when offline.
     @MainActor
     private enum ScatteredPhotosPreviewData {
-        static let photos: [OSImage] = specs.map { spec in
+        static let photos: [PlatformImage] = specs.map { spec in
             let url = URL(string: "https://picsum.photos/seed/\(spec.seed)/\(spec.w)/\(spec.h)")!
-            if let data = try? Data(contentsOf: url), let image = OSImage(data: data) { return image }
+            if let data = try? Data(contentsOf: url), let image = PlatformImage(data: data) { return image }
             return placeholder(width: spec.w, height: spec.h, seed: spec.seed)
         }
 
@@ -209,7 +209,7 @@ private struct SeededGenerator: RandomNumberGenerator {
             (48, 300, 380), (52, 360, 360), (63, 400, 280),
         ]
 
-        private static func placeholder(width: Int, height: Int, seed: Int) -> OSImage {
+        private static func placeholder(width: Int, height: Int, seed: Int) -> PlatformImage {
             let space = CGColorSpaceCreateDeviceRGB()
             let context = CGContext(
                 data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
@@ -223,9 +223,9 @@ private struct SeededGenerator: RandomNumberGenerator {
             )
             let cgImage = context.makeImage()!
             #if canImport(UIKit)
-                return OSImage(cgImage: cgImage)
+                return PlatformImage(cgImage: cgImage)
             #else
-                return OSImage(cgImage: cgImage, size: NSSize(width: width, height: height))
+                return PlatformImage(cgImage: cgImage, size: NSSize(width: width, height: height))
             #endif
         }
     }

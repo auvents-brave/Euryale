@@ -139,3 +139,21 @@ private struct PopupPresentationModifier<PopupContent: View>: ViewModifier {
 #endif
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+    #Preview("PopupPresenter") {
+        PopupPresenter {
+            Label("Details", systemImage: "info.circle")
+        } presentedContent: {
+            VStack(spacing: 12) {
+                Image(systemName: "sailboat").font(.largeTitle)
+                Text(verbatim: "Popover on a pointer device, sheet when compact.")
+                    .multilineTextAlignment(.center)
+            }
+            .padding()
+        }
+        .padding()
+    }
+#endif

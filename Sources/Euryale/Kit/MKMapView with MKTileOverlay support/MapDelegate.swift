@@ -7,7 +7,7 @@
     /// `MKMapViewDelegate` for ``MapKitView``: renders the cached tile overlays
     /// and — added by `MapKitView+Markers` — the styled polylines (``MapTrack``)
     /// and image markers (``MapMarker``).
-    class MapDelegate: OSDelegate, MKMapViewDelegate {
+    class MapDelegate: PlatformDelegate, MKMapViewDelegate {
 
         /// Stroke style per polyline overlay, keyed by object identity, set by the
         /// markable representable when it adds the track overlays. The `isHalo`
@@ -34,7 +34,7 @@
             }
             if let polyline = overlay as? MKPolyline,
                let entry = trackStyles[ObjectIdentifier(polyline)] {
-                let base = OSColor(entry.style.color)
+                let base = PlatformColor(entry.style.color)
                 if entry.isHalo {
                     let renderer = MKPolylineRenderer(polyline: polyline)
                     renderer.strokeColor = base.withAlphaComponent(0.22)

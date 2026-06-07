@@ -61,4 +61,28 @@
             }
         }
     }
+
+    // MARK: - Previews
+
+    #if DEBUG
+        private struct DisclosureGroupPreview: View {
+            @State private var expanded = true
+
+            var body: some View {
+                DisclosureGroup(isExpanded: $expanded) {
+                    VStack(alignment: .leading) {
+                        Text(verbatim: "First item")
+                        Text(verbatim: "Second item")
+                    }
+                } label: {
+                    Text(verbatim: "Section")
+                }
+                .padding()
+            }
+        }
+
+        #Preview("DisclosureGroup (tvOS / watchOS shim)") {
+            DisclosureGroupPreview()
+        }
+    #endif
 #endif
