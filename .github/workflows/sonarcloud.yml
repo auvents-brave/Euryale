@@ -44,7 +44,7 @@ jobs:
         run: |
           set -euo pipefail
           xcodebuild test \
-            -scheme "Euryale" \
+            -scheme "Euryale-Package" \
             -destination "platform=macOS" \
             -enableCodeCoverage YES \
             -derivedDataPath "$PWD/.derivedData"
