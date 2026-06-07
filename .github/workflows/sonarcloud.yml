@@ -23,8 +23,12 @@ jobs:
     continue-on-error: true
     # Euryale depends on Apple-only frameworks (MapKit, WebKit, PDFKit,
     # MetalKit, TextKit, CoreLocation, Vision).  It does not compile under
-    # swift-corelibs Foundation on Linux, so the scan must run on macOS and
-    # use xcodebuild for the build + test + coverage pipeline.
+    # swift-corelibs Foundation on Linux, so the scan runs on a macOS runner and
+    # uses xcodebuild for the build + test + coverage pipeline.  The tests
+    # themselves run on the **iOS Simulator**, not the macOS destination: the UI
+    # snapshot suites are gated `#if os(iOS) && !targetEnvironment(macCatalyst)`,
+    # so only an iOS run actually executes them and produces coverage for the
+    # iOS-only UI code (EntityList, the photo galleries, the segmented control…).
     runs-on: macos-26
 
     steps:
@@ -45,7 +49,7 @@ jobs:
           set -euo pipefail
           xcodebuild test \
             -scheme "Euryale-Package" \
-            -destination "platform=macOS" \
+            -destination 'platform=iOS Simulator,name=iPhone 17' \
             -enableCodeCoverage YES \
             -derivedDataPath "$PWD/.derivedData"
 
@@ -60,7 +64,14 @@ jobs:
           fi
 
           TEST_BUNDLE="$(find "$PWD/.derivedData" -type d -name '*.xctest' | head -n 1)"
-          TEST_BIN="$TEST_BUNDLE/Contents/MacOS/$(basename "$TEST_BUNDLE" .xctest)"
+          TEST_NAME="$(basename "$TEST_BUNDLE" .xctest)"
+          # macOS bundles keep the binary under Contents/MacOS; iOS-simulator
+          # .xctest bundles put it directly inside the bundle.  Support both.
+          if [ -f "$TEST_BUNDLE/Contents/MacOS/$TEST_NAME" ]; then
+            TEST_BIN="$TEST_BUNDLE/Contents/MacOS/$TEST_NAME"
+          else
+            TEST_BIN="$TEST_BUNDLE/$TEST_NAME"
+          fi
 
           [ -n "${PROFDATA:-}" ] || { echo "profdata not found under .derivedData"; exit 1; }
           [ -f "${TEST_BIN:-}" ] || { echo "test binary not found at $TEST_BIN"; exit 1; }

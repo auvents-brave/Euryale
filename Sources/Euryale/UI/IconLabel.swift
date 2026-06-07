@@ -81,7 +81,10 @@ public struct IconLabel: View {
     /// Hosts the demo so the `#Preview` body is one expression — the `enum` and
     /// `@State` live at file scope, not inside the macro (which is brittle with
     /// nested declarations). Mirrors the real use: rows of a default `Picker`.
-    private struct IconLabelPickerPreview: View {
+    ///
+    /// `internal` (not `private`) so the snapshot test target can render it and
+    /// exercise this preview's view code; it stays inside `#if DEBUG`.
+    struct IconLabelPickerPreview: View {
         private enum Kind: String, CaseIterable, Identifiable {
             case marks, routes, traces
             var id: String { rawValue }

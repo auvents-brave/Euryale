@@ -302,7 +302,9 @@ public struct ListControlBar<Add: View>: View {
 // MARK: - Previews
 
 #if DEBUG
-    private struct EntityListPreview: View {
+    // `internal` (not `private`) so the snapshot test target can render it and
+    // exercise this preview's view code; it stays inside `#if DEBUG`.
+    struct EntityListPreview: View {
         private struct Port: Identifiable { let id: Int; let name: String }
 
         @State private var ports = [
