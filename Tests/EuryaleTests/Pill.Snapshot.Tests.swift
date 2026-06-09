@@ -23,67 +23,67 @@ import Testing
 // compile on iOS (excluding Mac Catalyst) and skip at runtime on any non-phone
 // idiom (e.g. iPad @2x), so a single @3x reference set stays valid.
 #if os(iOS) && !targetEnvironment(macCatalyst)
-import UIKit
+  import UIKit
 
-@MainActor
-@Suite("Pill snapshot", .enabled(if: UIDevice.current.userInterfaceIdiom == .phone))
-struct PillSnapshotTests {
+  @MainActor
+  @Suite("Pill snapshot", .enabled(if: UIDevice.current.userInterfaceIdiom == .phone))
+  struct PillSnapshotTests {
     @Test func `default rendering — Bedrooms 3`() async throws {
-        let view = Pill(label: "Bedrooms", value: 3)
-            .frame(width: 160, height: 70)
+      let view = Pill(label: "Bedrooms", value: 3)
+        .frame(width: 160, height: 70)
 
-        assertSnapshot(of: view, as: .image)
+      assertSnapshot(of: view, as: .image)
     }
 
     @Test func `zero value`() async throws {
-        let view = Pill(label: "Bathrooms", value: 0)
-            .frame(width: 160, height: 70)
+      let view = Pill(label: "Bathrooms", value: 0)
+        .frame(width: 160, height: 70)
 
-        assertSnapshot(of: view, as: .image)
+      assertSnapshot(of: view, as: .image)
     }
 
     @Test func `long label`() async throws {
-        let view = Pill(label: "Outdoor parking spaces", value: 12)
-            .frame(width: 220, height: 70)
+      let view = Pill(label: "Outdoor parking spaces", value: 12)
+        .frame(width: 220, height: 70)
 
-        assertSnapshot(of: view, as: .image)
+      assertSnapshot(of: view, as: .image)
     }
 
     @Test func `large value`() async throws {
-        let view = Pill(label: "Steps today", value: 14_237)
-            .frame(width: 200, height: 70)
+      let view = Pill(label: "Steps today", value: 14_237)
+        .frame(width: 200, height: 70)
 
-        // The grouped large number antialiases marginally differently between a
-        // local Mac and the CI runner (same Xcode / iPhone 17 @3x simulator), so
-        // this one allows a small perceptual tolerance rather than exact match.
-        assertSnapshot(of: view, as: .image(precision: 0.97, perceptualPrecision: 0.98))
+      // The grouped large number antialiases marginally differently between a
+      // local Mac and the CI runner (same Xcode / iPhone 17 @3x simulator), so
+      // this one allows a small perceptual tolerance rather than exact match.
+      assertSnapshot(of: view, as: .image(precision: 0.97, perceptualPrecision: 0.98))
     }
-}
+  }
 
-@MainActor
-@Suite("PillsView snapshot", .enabled(if: UIDevice.current.userInterfaceIdiom == .phone))
-struct PillsViewSnapshotTests {
+  @MainActor
+  @Suite("PillsView snapshot", .enabled(if: UIDevice.current.userInterfaceIdiom == .phone))
+  struct PillsViewSnapshotTests {
     @Test func `three pills, horizontal layout`() async throws {
-        let view = PillsView(items: [
-            ("Home",     12),
-            ("Bathroom", 2),
-            ("Bedroom",  3),
-        ])
-        .frame(width: 380, height: 80)
+      let view = PillsView(items: [
+        ("Home", 12),
+        ("Bathroom", 2),
+        ("Bedroom", 3),
+      ])
+      .frame(width: 380, height: 80)
 
-        assertSnapshot(of: view, as: .image)
+      assertSnapshot(of: view, as: .image)
     }
 
     @Test func `three pills, constrained falls back to vertical`() async throws {
-        let view = PillsView(items: [
-            ("Home",     12),
-            ("Bathroom", 2),
-            ("Bedroom",  3),
-        ])
-        .frame(width: 200, height: 240)
+      let view = PillsView(items: [
+        ("Home", 12),
+        ("Bathroom", 2),
+        ("Bedroom", 3),
+      ])
+      .frame(width: 200, height: 240)
 
-        assertSnapshot(of: view, as: .image)
+      assertSnapshot(of: view, as: .image)
     }
-}
+  }
 
-#endif // os(iOS) && !macCatalyst
+#endif  // os(iOS) && !macCatalyst
