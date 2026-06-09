@@ -17,84 +17,84 @@ public import SwiftUI
 /// ```
 public struct Pill: View {
 
-    // MARK: Properties
+  // MARK: Properties
 
-    let label: String
-    let systemImage: String?
-    let value: Int
+  let label: String
+  let systemImage: String?
+  let value: Int
 
-    #if !os(macOS) && !os(watchOS)
-        @Environment(\.verticalSizeClass) private var verticalSizeClass
+  #if !os(macOS) && !os(watchOS)
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+  #endif
+
+  // MARK: Init
+
+  /// Creates a pill.
+  /// - Parameters:
+  ///   - label: Caption shown above the value.
+  ///   - systemImage: Optional SF Symbol shown alongside the caption.
+  ///   - value: Integer displayed in the headline font.
+  public init(label: String, systemImage: String? = nil, value: Int) {
+    self.label = label
+    self.systemImage = systemImage
+    self.value = value
+  }
+
+  // MARK: Body
+
+  public var body: some View {
+    layout
+      .padding(10)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .background(Color.secondary.opacity(0.1))
+      .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+      .accessibilityIdentifier("Pill")
+  }
+
+  /// Caption above the value when there's room; caption and value side by side
+  /// when vertical space is tight (e.g. iPhone landscape) to save height.
+  @ViewBuilder
+  private var layout: some View {
+    if isHeightConstrained {
+      HStack {
+        caption
+        Spacer()
+        valueText
+      }
+    } else {
+      VStack(alignment: .leading, spacing: 4) {
+        caption
+        valueText
+      }
+    }
+  }
+
+  private var caption: some View {
+    Group {
+      if let systemImage {
+        Label(label, systemImage: systemImage)
+      } else {
+        Text(label)
+      }
+    }
+    .font(.caption)
+    .foregroundStyle(.secondary)
+  }
+
+  private var valueText: some View {
+    Text("\(value)")
+      .font(.headline)
+      .monospacedDigit()
+  }
+
+  /// Whether vertical space is scarce — drives the compact, single-line layout.
+  private var isHeightConstrained: Bool {
+    #if os(macOS) || os(watchOS)
+      false
+    #else
+      verticalSizeClass == .compact
     #endif
-
-    // MARK: Init
-
-    /// Creates a pill.
-    /// - Parameters:
-    ///   - label: Caption shown above the value.
-    ///   - systemImage: Optional SF Symbol shown alongside the caption.
-    ///   - value: Integer displayed in the headline font.
-    public init(label: String, systemImage: String? = nil, value: Int) {
-        self.label = label
-        self.systemImage = systemImage
-        self.value = value
-    }
-
-    // MARK: Body
-
-    public var body: some View {
-        layout
-            .padding(10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.secondary.opacity(0.1))
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .accessibilityIdentifier("Pill")
-    }
-
-    /// Caption above the value when there's room; caption and value side by side
-    /// when vertical space is tight (e.g. iPhone landscape) to save height.
-    @ViewBuilder
-    private var layout: some View {
-        if isHeightConstrained {
-            HStack {
-                caption
-                Spacer()
-                valueText
-            }
-        } else {
-            VStack(alignment: .leading, spacing: 4) {
-                caption
-                valueText
-            }
-        }
-    }
-
-    private var caption: some View {
-        Group {
-            if let systemImage {
-                Label(label, systemImage: systemImage)
-            } else {
-                Text(label)
-            }
-        }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-    }
-
-    private var valueText: some View {
-        Text("\(value)")
-            .font(.headline)
-            .monospacedDigit()
-    }
-
-    /// Whether vertical space is scarce — drives the compact, single-line layout.
-    private var isHeightConstrained: Bool {
-        #if os(macOS) || os(watchOS)
-            false
-        #else
-            verticalSizeClass == .compact
-        #endif
-    }
+  }
 }
 
 // MARK: - PillsView
@@ -111,90 +111,90 @@ public struct Pill: View {
 /// ```
 public struct PillsView: View {
 
-    // MARK: Nested types
+  // MARK: Nested types
 
-    /// A single labelled value to be shown by ``PillsView``.
-    public struct Item: Identifiable {
-        public let id = UUID()
-        let label: String
-        let systemImage: String?
-        let value: Int
+  /// A single labelled value to be shown by ``PillsView``.
+  public struct Item: Identifiable {
+    public let id = UUID()
+    let label: String
+    let systemImage: String?
+    let value: Int
 
-        /// Creates an item.
-        /// - Parameters:
-        ///   - label: Caption text for the pill.
-        ///   - systemImage: Optional SF Symbol shown alongside the caption.
-        ///   - value: Integer value shown by the pill.
-        public init(label: String, systemImage: String? = nil, value: Int) {
-            self.label = label
-            self.systemImage = systemImage
-            self.value = value
-        }
+    /// Creates an item.
+    /// - Parameters:
+    ///   - label: Caption text for the pill.
+    ///   - systemImage: Optional SF Symbol shown alongside the caption.
+    ///   - value: Integer value shown by the pill.
+    public init(label: String, systemImage: String? = nil, value: Int) {
+      self.label = label
+      self.systemImage = systemImage
+      self.value = value
     }
+  }
 
-    // MARK: Properties
+  // MARK: Properties
 
-    let items: [Item]
+  let items: [Item]
 
-    // MARK: Init
+  // MARK: Init
 
-    /// Creates a `PillsView` from an explicit ``Item`` array.
-    public init(items: [Item]) {
-        self.items = items
+  /// Creates a `PillsView` from an explicit ``Item`` array.
+  public init(items: [Item]) {
+    self.items = items
+  }
+
+  /// Creates a `PillsView` from `(label, value)` tuples.
+  public init(items: [(String, Int)]) {
+    self.items = items.map { Item(label: $0.0, value: $0.1) }
+  }
+
+  // MARK: Helpers
+
+  @ViewBuilder
+  private func pillItems() -> some View {
+    ForEach(items) { item in
+      Pill(label: item.label, systemImage: item.systemImage, value: item.value)
     }
+  }
 
-    /// Creates a `PillsView` from `(label, value)` tuples.
-    public init(items: [(String, Int)]) {
-        self.items = items.map { Item(label: $0.0, value: $0.1) }
+  // MARK: Body
+
+  public var body: some View {
+    // A row when the width allows it, otherwise stacked.
+    ViewThatFits(in: .horizontal) {
+      HStack {
+        pillItems()
+      }
+      VStack(alignment: .leading) {
+        pillItems()
+      }
     }
-
-    // MARK: Helpers
-
-    @ViewBuilder
-    private func pillItems() -> some View {
-        ForEach(items) { item in
-            Pill(label: item.label, systemImage: item.systemImage, value: item.value)
-        }
-    }
-
-    // MARK: Body
-
-    public var body: some View {
-        // A row when the width allows it, otherwise stacked.
-        ViewThatFits(in: .horizontal) {
-            HStack {
-                pillItems()
-            }
-            VStack(alignment: .leading) {
-                pillItems()
-            }
-        }
-        .accessibilityIdentifier("PillsView")
-    }
+    .accessibilityIdentifier("PillsView")
+  }
 }
 
 // MARK: - Previews
 
 #Preview("Pill") {
-    Pill(label: "Bedroom", value: Int.random(in: 1 ... 30))
-        .padding()
+  Pill(label: "Bedroom", value: Int.random(in: 1...30))
+    .padding()
 }
 
 #Preview("Pills") {
-    PillsView(items: [
-        .init(label: "Home", value: Int.random(in: 1 ... 30)),
-        .init(label: "Bathroom", value: Int.random(in: 1 ... 30)),
-        .init(label: "Bedroom", value: Int.random(in: 1 ... 30)),
-    ])
-    .padding()
+  PillsView(items: [
+    .init(label: "Home", value: Int.random(in: 1...30)),
+    .init(label: "Bathroom", value: Int.random(in: 1...30)),
+    .init(label: "Bedroom", value: Int.random(in: 1...30)),
+  ])
+  .padding()
 }
 
 #Preview("Pills (Constrained)") {
-    PillsView(items: [
-        ("Home", (1 ... 30).randomElement()!),
-        ("Bathroom", (1 ... 30).randomElement()!),
-        ("Bedroom", (1 ... 30).randomElement()!),
-    ])
-    .padding()
-    .frame(width: 200)
+  PillsView(items: [
+    ("Home", (1...30).randomElement()!),
+    ("Bathroom", (1...30).randomElement()!),
+    ("Bedroom", (1...30).randomElement()!),
+  ])
+  .padding()
+  .frame(width: 200)
 }

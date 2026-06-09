@@ -6,8 +6,8 @@ public import SwiftUI
 /// An `AppIntent` that supplies the Siri phrase shown in the tip card
 /// on macOS and Mac Catalyst, where the system `SiriTipView` is unavailable.
 public protocol SiriTipDisplayable: AppIntent {
-    /// Primary Siri phrase displayed to the user.
-    static var tipPhrase: LocalizedStringResource { get }
+  /// Primary Siri phrase displayed to the user.
+  static var tipPhrase: LocalizedStringResource { get }
 }
 
 // MARK: - SiriTipItem
@@ -23,25 +23,25 @@ public protocol SiriTipDisplayable: AppIntent {
 /// )
 /// ```
 public struct SiriTipItem {
-    let isVisible: Binding<Bool>
-    let view: AnyView
+  let isVisible: Binding<Bool>
+  let view: AnyView
 
-    /// Creates an item from an intent and its visibility binding.
-    /// - Parameters:
-    ///   - intent: The intent whose Siri phrase is shown.
-    ///   - isVisible: Controls whether the tip card is displayed.
-    @MainActor
-    public init<I: SiriTipDisplayable>(_ intent: I, _ isVisible: Binding<Bool>) {
-        self.isVisible = isVisible
-        #if os(macOS) || targetEnvironment(macCatalyst)
-        self.view = AnyView(SiriTipView(intent: intent, isVisible: isVisible))
-        #else
-        self.view = AnyView(
-            SiriTipView(intent: intent, isVisible: isVisible)
-                .siriTipViewStyle(.automatic)
-        )
-        #endif
-    }
+  /// Creates an item from an intent and its visibility binding.
+  /// - Parameters:
+  ///   - intent: The intent whose Siri phrase is shown.
+  ///   - isVisible: Controls whether the tip card is displayed.
+  @MainActor
+  public init<I: SiriTipDisplayable>(_ intent: I, _ isVisible: Binding<Bool>) {
+    self.isVisible = isVisible
+    #if os(macOS) || targetEnvironment(macCatalyst)
+      self.view = AnyView(SiriTipView(intent: intent, isVisible: isVisible))
+    #else
+      self.view = AnyView(
+        SiriTipView(intent: intent, isVisible: isVisible)
+          .siriTipViewStyle(.automatic)
+      )
+    #endif
+  }
 }
 
 // MARK: - macOS / Mac Catalyst implementation
@@ -50,7 +50,7 @@ public struct SiriTipItem {
 /// This implementation provides the same `init(intent:isVisible:)` interface so
 /// that ``SiriTipItem`` and ``RollingTipView`` compile identically on all platforms.
 #if os(macOS) || targetEnvironment(macCatalyst)
-public struct SiriTipView<Intent: SiriTipDisplayable>: View {
+  public struct SiriTipView<Intent: SiriTipDisplayable>: View {
     let intent: Intent
     @Binding var isVisible: Bool
 
@@ -59,45 +59,47 @@ public struct SiriTipView<Intent: SiriTipDisplayable>: View {
     ///   - intent: The intent whose Siri phrase is shown.
     ///   - isVisible: Controls whether the tip card is displayed.
     public init(intent: Intent, isVisible: Binding<Bool>) {
-        self.intent = intent
-        _isVisible = isVisible
+      self.intent = intent
+      _isVisible = isVisible
     }
 
     public var body: some View {
-        if isVisible {
-            HStack(spacing: 8) {
-                Image(systemName: "waveform")
-                Text(Intent.tipPhrase)
-                    .font(.caption)
-                Spacer()
-                Button { isVisible = false } label: {
-                    Image(systemName: "xmark.circle.fill")
-                }
-                .buttonStyle(.plain)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .background(Color.secondary.opacity(0.1))
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+      if isVisible {
+        HStack(spacing: 8) {
+          Image(systemName: "waveform")
+          Text(Intent.tipPhrase)
+            .font(.caption)
+          Spacer()
+          Button {
+            isVisible = false
+          } label: {
+            Image(systemName: "xmark.circle.fill")
+          }
+          .buttonStyle(.plain)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(Color.secondary.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+      }
     }
-}
+  }
 #endif
 
 // MARK: - Previews
 
 #if DEBUG
-private struct _DemoIntent: SiriTipDisplayable {
+  private struct _DemoIntent: SiriTipDisplayable {
     static let title: LocalizedStringResource = "Demo"
     static let tipPhrase: LocalizedStringResource = "Try this in App"
     func perform() async throws -> some IntentResult { .result() }
-}
+  }
 
-#Preview {
+  #Preview {
     @Previewable @State var visible = true
     SiriTipView(intent: _DemoIntent(), isVisible: $visible)
-        .padding()
-}
+      .padding()
+  }
 #endif
