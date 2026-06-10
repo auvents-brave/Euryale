@@ -16,38 +16,40 @@ import Testing
 // Every case logs the actual name returned by `Name()` so failures or
 // locale drifts are easy to inspect in the test output.
 @Test(arguments: [
-    // Water inside the Strait of Bonifacio natural marine reserve.
-    (CLLocation(latitude: 41.470, longitude:   9.268),  true,  "Bonifacio" as String?),
+	// Water inside the Strait of Bonifacio natural marine reserve.
+	(CLLocation(latitude: 41.470, longitude: 9.268), true, "Bonifacio" as String?),
 
-    // Land in Monaco.
-    (CLLocation(latitude: 43.736, longitude:   7.427),  false, "Louis"     as String?),
+	// Land in Monaco.
+	(CLLocation(latitude: 43.736, longitude: 7.427), false, "Louis" as String?),
 
-    // Water inside the La Maddalena marine national park.
-    (CLLocation(latitude: 41.192, longitude:   9.407),  true,  "Maddalena" as String?),
+	// Water inside the La Maddalena marine national park.
+	(CLLocation(latitude: 41.192, longitude: 9.407), true, "Maddalena" as String?),
 
-    // Land in California.
-    (CLLocation(latitude: 37.335, longitude: -122.009), false, "Apple"     as String?),
+	// Land in California.
+	(CLLocation(latitude: 37.335, longitude: -122.009), false, "Apple" as String?),
 
-    // Open Ligurian / Tyrrhenian Sea between Monaco and Corsica
-    // (name is locale-dependent — skip the substring check).
-    (CLLocation(latitude: 43.370, longitude:   8.395),  true,  nil),
+	// Open Ligurian / Tyrrhenian Sea between Monaco and Corsica
+	// (name is locale-dependent — skip the substring check).
+	(CLLocation(latitude: 43.370, longitude: 8.395), true, nil),
 
-    // Open Atlantic, ~250 NM west of Brittany
-    // (name is locale-dependent — skip the substring check).
-    (CLLocation(latitude: 48.000, longitude:  -8.000),  true,  nil),
+	// Open Atlantic, ~250 NM west of Brittany
+	// (name is locale-dependent — skip the substring check).
+	(CLLocation(latitude: 48.000, longitude: -8.000), true, nil),
 ])
 func `Reverse Location`(_ value: (CLLocation, Bool, String?)) async throws {
-    let coord = value.0.coordinate
-    let atSea = await value.0.AtSea()
-    let name = await value.0.Name()
+	let coord = value.0.coordinate
+	let atSea = await value.0.AtSea()
+	let name = await value.0.Name()
 
-    Attachment.record("name=\"\(name)\"", named: "geocode")
+	Attachment.record("name=\"\(name)\"", named: "geocode")
 
-    #expect(value.1 == atSea,
-            "Expected atSea=\(value.1) at (\(coord.latitude), \(coord.longitude)), got \(atSea)")
+	#expect(
+		value.1 == atSea,
+		"Expected atSea=\(value.1) at (\(coord.latitude), \(coord.longitude)), got \(atSea)")
 
-    if let expected = value.2 {
-        #expect(name.range(of: expected, options: .caseInsensitive) != nil,
-                "Expected name at (\(coord.latitude), \(coord.longitude)) to contain \"\(expected)\", got \"\(name)\"")
-    }
+	if let expected = value.2 {
+		#expect(
+			name.range(of: expected, options: .caseInsensitive) != nil,
+			"Expected name at (\(coord.latitude), \(coord.longitude)) to contain \"\(expected)\", got \"\(name)\"")
+	}
 }

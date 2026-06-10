@@ -4,9 +4,9 @@
 
 Euryale is a small Swift package collecting higher-level helpers built on top of MapKit, MetalKit, PDFKit, WebKit, TextKit, Core Location and Vision. It complements [Sthenô](https://github.com/auvents-brave/Stheno) (pure-Swift cross-platform building blocks) with Apple-platform-specific views, view modifiers and extensions, designed to be adopted piecemeal across apps.
 
-The package vends two libraries: **`Euryale`** — the Apple-platform views, view modifiers and extensions described below — and **`HelpKit`** — a standalone, MarkdownUI-backed in-app help browser (see [In-app help](#in-app-help-helpkit)). Depend on either or both.
+The package vends a single library, **`Euryale`** — the Apple-platform views, view modifiers and extensions described below, including a MarkdownUI-backed in-app help browser (see [In-app help](#in-app-help)).
 
-Euryale depends on [Sthenô](https://github.com/auvents-brave/Stheno) for cross-platform foundations and on [swift-log](https://github.com/apple/swift-log) for structured logging. The separate `HelpKit` product additionally uses [swift-markdown-ui](https://github.com/gonzalezreal/swift-markdown-ui) to render help articles; the core `Euryale` library keeps its dependency footprint minimal.
+Euryale depends on [Sthenô](https://github.com/auvents-brave/Stheno) for cross-platform foundations, on [swift-log](https://github.com/apple/swift-log) for structured logging, and on [swift-markdown-ui](https://github.com/gonzalezreal/swift-markdown-ui) to render the help articles.
 
 Continuous Integration (CI) is handled through GitHub Actions, which automatically builds, tests, generates documentation, and analyses the codebase using CodeQL and SonarQube to ensure quality, consistency, and cross-platform reliability.
 
@@ -40,7 +40,7 @@ A SwiftUI-friendly `MKMapView` wrapper plus a popup variant that pairs an embedd
 
 - [`MapKitView`](https://auvents-brave.github.io/Euryale/documentation/euryale/mapkitview/) — Cross-platform `MKMapView` SwiftUI wrapper with on-disk-cached XYZ/TMS tile overlays (configurable cache age and optional App Group container for cross-app sharing). Optionally renders a styled overlay layer of markers and tracks with tap selection.
 - [`PopupMapView`](https://auvents-brave.github.io/Euryale/documentation/euryale/popupmapview/) — Pre-built popover that embeds a `MapKitView` and an "Open in Maps" escape hatch. Adapts gracefully to watchOS (direct Maps launch) and tvOS (no Open-in-Maps button).
-- [`MapMarker`](https://auvents-brave.github.io/Euryale/documentation/euryale/mapmarker/) — A styled, identifiable map annotation (coordinate, label, opacity) for the markable overlay layer.
+- [`MapMarker`](https://auvents-brave.github.io/Euryale/documentation/euryale/mapmarker/) — A styled, identifiable map annotation (coordinate, label, opacity) for the markable overlay layer, drawn according to a [`MapPositionStyle`](https://auvents-brave.github.io/Euryale/documentation/euryale/mappositionstyle/) (dot, heading triangle, boat hull…) with caller-supplied colours.
 - [`MapTrack`](https://auvents-brave.github.io/Euryale/documentation/euryale/maptrack/) and [`MapTrackStyle`](https://auvents-brave.github.io/Euryale/documentation/euryale/maptrackstyle/) — A polyline track overlay with a configurable line style.
 
 ### Web content
@@ -60,7 +60,10 @@ A SwiftUI-friendly `MKMapView` wrapper plus a popup variant that pairs an embedd
 
 ### Reusable UI components
 
-- [`AdaptiveToolbar`](https://auvents-brave.github.io/Euryale/documentation/euryale/adaptivetoolbar/) — A custom cross-platform toolbar that mirrors the system toolbars: each action shows as an icon or icon + label, labels collapse to icons as space tightens, and the tightest layouts fold trailing actions into an overflow menu/popover. Supports grouped sections (e.g. a leading radio-style selector followed by commands) and Liquid Glass where available. Configured with [`ToolbarAction`](https://auvents-brave.github.io/Euryale/documentation/euryale/toolbaraction/) values, using [`ToolbarShareItem`](https://auvents-brave.github.io/Euryale/documentation/euryale/toolbarshareitem/) for share actions.
+- [`AdaptiveToolbar`](https://auvents-brave.github.io/Euryale/documentation/euryale/adaptivetoolbar/) — A custom cross-platform toolbar that mirrors the system toolbars: each action shows as an icon or icon + label, labels collapse to icons as space tightens, and the tightest layouts fold trailing actions into an overflow menu/popover. Supports grouped sections (e.g. a leading radio-style selector followed by commands), a `collapsedAsMenu` mode that renders the whole bar as a single glass "…" menu button, and Liquid Glass where available. Configured with [`ToolbarAction`](https://auvents-brave.github.io/Euryale/documentation/euryale/toolbaraction/) values, using [`ToolbarShareItem`](https://auvents-brave.github.io/Euryale/documentation/euryale/toolbarshareitem/) for share actions.
+- [`EntityList`](https://auvents-brave.github.io/Euryale/documentation/euryale/entitylist/) — A generic, cross-platform `List` unifying selection, per-row actions and optional scroll-to-selection. Row affordances are declared once as [`RowAction`](https://auvents-brave.github.io/Euryale/documentation/euryale/rowaction/) values and rendered as both trailing swipe actions (iOS/iPadOS/visionOS) and a context menu (macOS right-click, iPad long-press); the standalone `rowActions(_:)` modifier applies the same to any row. [`ListControlBar`](https://auvents-brave.github.io/Euryale/documentation/euryale/listcontrolbar/) pairs with it for list-wide commands.
+- [`MultiPagePill`](https://auvents-brave.github.io/Euryale/documentation/euryale/multipagepill/) — A glass material capsule hosting paged content, as used for glanceable instrument read-outs.
+- [`IconSegmentedControl`](https://auvents-brave.github.io/Euryale/documentation/euryale/iconsegmentedcontrol/) — A segmented selector of SF Symbol options with labels, adapting its presentation across platforms.
 - [`Pill`](https://auvents-brave.github.io/Euryale/documentation/euryale/pill/) and [`PillsView`](https://auvents-brave.github.io/Euryale/documentation/euryale/pillsview/) — Compact label-and-value badges, each with an optional leading SF Symbol icon, and an adaptive horizontal/vertical layout container.
 - [`PaginatedPill`](https://auvents-brave.github.io/Euryale/documentation/euryale/paginatedpill/) — Generic paginated pill container that shows one page of arbitrary content at a time, with tap-to-jump indicator dots and horizontal swipe-to-navigate. Configurable layout: `.overlay` (default — content full-bleed, dots floating, e.g. bottom-trailing) or `.stacked` (dots below content). Indicators use the SwiftUI environment tint (override via `accentColor:`) on legacy systems; on OS 26+ they pick up the Liquid Glass material with no colour tint at all (active/inactive distinguished by size + outline opacity).
 - [`PaginatedView`](https://auvents-brave.github.io/Euryale/documentation/euryale/paginatedview/) — The generic paged container behind `PaginatedPill`, factored out for reuse: shows one page of arbitrary content at a time with indicator dots and swipe-to-navigate.
@@ -121,12 +124,12 @@ A SwiftUI-friendly `MKMapView` wrapper plus a popup variant that pairs an embedd
 
 ### Cross-platform aliases
 
-- [`OSApplication`](https://auvents-brave.github.io/Euryale/documentation/euryale/osapplication), [`OSView`](https://auvents-brave.github.io/Euryale/documentation/euryale/osview), [`OSColor`](https://auvents-brave.github.io/Euryale/documentation/euryale/oscolor), [`OSImage`](https://auvents-brave.github.io/Euryale/documentation/euryale/osimage), [`OSFont`](https://auvents-brave.github.io/Euryale/documentation/euryale/osfont) — `WKExtension` / `UIApplication` / `NSApplication` family of native typealiases, plus `OSApplication.osShared` to get the shared instance, so shared code can avoid `#if` blocks at every reference site.
+- [`PlatformApplication`](https://auvents-brave.github.io/Euryale/documentation/euryale/platformapplication), [`PlatformColor`](https://auvents-brave.github.io/Euryale/documentation/euryale/platformcolor), [`PlatformImage`](https://auvents-brave.github.io/Euryale/documentation/euryale/platformimage), [`PlatformFont`](https://auvents-brave.github.io/Euryale/documentation/euryale/platformfont), [`PlatformDelegate`](https://auvents-brave.github.io/Euryale/documentation/euryale/platformdelegate) — `WKApplication` / `UIApplication` / `NSApplication` family of native typealiases, so shared code can avoid `#if` blocks at every reference site.
 
-### In-app help (HelpKit)
+### In-app help
 
-A separate **`HelpKit`** library product (import it independently of `Euryale`) renders a searchable, MarkdownUI-backed help browser from a structured topic tree — a single Markdown source can drive both the in-app help and an online mirror.
+The HelpKit components render a searchable, MarkdownUI-backed help browser from a structured topic tree — a single Markdown source can drive both the in-app help and an online mirror.
 
-- [`HelpBrowser`](https://auvents-brave.github.io/Euryale/documentation/helpkit/helpbrowser/) — SwiftUI browser that presents a `HelpBook` as a navigable, searchable topic list with Markdown-rendered articles.
-- [`HelpBook`](https://auvents-brave.github.io/Euryale/documentation/helpkit/helpbook/) — A tree of help topics, with a loader to build a book from bundled Markdown resources and a nested `LoadingError` for failures.
-- [`HelpTopic`](https://auvents-brave.github.io/Euryale/documentation/helpkit/helptopic/) — An identifiable help article (title, keywords, Markdown body and child topics), flattenable for search.
+- [`HelpBrowser`](https://auvents-brave.github.io/Euryale/documentation/euryale/helpbrowser/) — SwiftUI browser that presents a `HelpBook` as a navigable, searchable topic list with Markdown-rendered articles.
+- [`HelpBook`](https://auvents-brave.github.io/Euryale/documentation/euryale/helpbook/) — A tree of help topics, with a loader to build a book from bundled Markdown resources and a nested `LoadingError` for failures.
+- [`HelpTopic`](https://auvents-brave.github.io/Euryale/documentation/euryale/helptopic/) — An identifiable help article (title, keywords, Markdown body and child topics), flattenable for search.

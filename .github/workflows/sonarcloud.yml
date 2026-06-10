@@ -48,7 +48,7 @@ jobs:
         run: |
           set -euo pipefail
           xcodebuild test \
-            -scheme "Euryale-Package" \
+            -scheme "Euryale" \
             -destination 'platform=iOS Simulator,name=iPhone 17' \
             -enableCodeCoverage YES \
             -derivedDataPath "$PWD/.derivedData"

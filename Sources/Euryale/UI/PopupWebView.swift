@@ -1,7 +1,7 @@
 public import SwiftUI
 
 #if canImport(WebKit)
-  import WebKit
+	import WebKit
 #endif
 
 // MARK: - PopupWebView
@@ -18,78 +18,78 @@ public import SwiftUI
 /// ```
 public struct PopupWebView: View {
 
-  // MARK: Properties
+	// MARK: Properties
 
-  @Environment(\.openURL) private var openURL
+	@Environment(\.openURL) private var openURL
 
-  var url: URL
-  var title: String?
+	var url: URL
+	var title: String?
 
-  // MARK: Init
+	// MARK: Init
 
-  /// Creates a popup web-page presenter.
-  ///
-  /// - Parameters:
-  ///   - url: Web page loaded inside the embedded `WKWebView` (or shown as a
-  ///     `Link` destination on watchOS).
-  ///   - title: Optional label used as the watchOS `Link` text.  Defaults to
-  ///     the URL string when `nil`.
-  public init(url: URL, title: String? = nil) {
-    self.url = url
-    self.title = title
-  }
+	/// Creates a popup web-page presenter.
+	///
+	/// - Parameters:
+	///   - url: Web page loaded inside the embedded `WKWebView` (or shown as a
+	///     `Link` destination on watchOS).
+	///   - title: Optional label used as the watchOS `Link` text.  Defaults to
+	///     the URL string when `nil`.
+	public init(url: URL, title: String? = nil) {
+		self.url = url
+		self.title = title
+	}
 
-  // MARK: Body
+	// MARK: Body
 
-  public var body: some View {
-    #if os(watchOS)
-      Link(title ?? url.absoluteString, destination: url)
-        .accessibilityIdentifier("PopupWebView.button")
-    #else
-      HStack {
-        PopupPresenter {
-          Image(systemName: "link")
-        } presentedContent: {
-          ZStack(alignment: .bottomTrailing) {
-            WebKitView(url: url)
-              .frame(maxWidth: .infinity, maxHeight: .infinity)
+	public var body: some View {
+		#if os(watchOS)
+			Link(title ?? url.absoluteString, destination: url)
+				.accessibilityIdentifier("PopupWebView.button")
+		#else
+			HStack {
+				PopupPresenter {
+					Image(systemName: "link")
+				} presentedContent: {
+					ZStack(alignment: .bottomTrailing) {
+						WebKitView(url: url)
+							.frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            #if !os(tvOS)
-              Button {
-                openURL(url)
-              } label: {
-                Label {
-                  Text("Open in Browser", bundle: .module)
-                } icon: {
-                  Image(systemName: "safari")
-                }
-              }
-              .padding(.trailing, 20)
-              .padding(.bottom, 20)
-              .PreferredAvailableButtonStyle()
-              .accessibilityIdentifier("PopupWebView.openInBrowser")
-            #endif
-          }
-        }
-      }
-      .accessibilityIdentifier("PopupWebView.button")
-    #endif
-  }
+						#if !os(tvOS)
+							Button {
+								openURL(url)
+							} label: {
+								Label {
+									Text("Open in Browser", bundle: .module)
+								} icon: {
+									Image(systemName: "safari")
+								}
+							}
+							.padding(.trailing, 20)
+							.padding(.bottom, 20)
+							.PreferredAvailableButtonStyle()
+							.accessibilityIdentifier("PopupWebView.openInBrowser")
+						#endif
+					}
+				}
+			}
+			.accessibilityIdentifier("PopupWebView.button")
+		#endif
+	}
 }
 
 // MARK: - Previews
 
 #Preview("No title") {
-  PopupWebView(url: URL(string: "https://example.com")!)
+	PopupWebView(url: URL(string: "https://example.com")!)
 }
 
 #Preview("With title") {
-  PopupWebView(url: URL(string: "https://example.com")!, title: "Example")
+	PopupWebView(url: URL(string: "https://example.com")!, title: "Example")
 }
 
 #Preview("In List") {
-  List {
-    PopupWebView(url: URL(string: "https://apple.com")!, title: "Apple")
-    PopupWebView(url: URL(string: "https://example.com")!, title: "Example")
-  }
+	List {
+		PopupWebView(url: URL(string: "https://apple.com")!, title: "Apple")
+		PopupWebView(url: URL(string: "https://example.com")!, title: "Example")
+	}
 }

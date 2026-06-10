@@ -20,131 +20,131 @@ public import SwiftUI
 /// ```
 public struct IPAddressField: View {
 
-  // MARK: Filter
+	// MARK: Filter
 
-  /// The kind of network value the field accepts and validates.
-  public enum Filter {
-    case ipv4
-    case ipv6
-    case port
-  }
+	/// The kind of network value the field accepts and validates.
+	public enum Filter {
+		case ipv4
+		case ipv6
+		case port
+	}
 
-  // MARK: State
+	// MARK: State
 
-  private let filter: Filter
-  @Binding private var text: String
-  @State private var display: String = ""
+	private let filter: Filter
+	@Binding private var text: String
+	@State private var display: String = ""
 
-  // MARK: Init
+	// MARK: Init
 
-  /// Creates an address field.
-  /// - Parameters:
-  ///   - filter: The address format the field accepts and validates.
-  ///   - text: Binding to the edited text.
-  public init(_ filter: Filter, text: Binding<String>) {
-    self.filter = filter
-    _text = text
-  }
+	/// Creates an address field.
+	/// - Parameters:
+	///   - filter: The address format the field accepts and validates.
+	///   - text: Binding to the edited text.
+	public init(_ filter: Filter, text: Binding<String>) {
+		self.filter = filter
+		_text = text
+	}
 
-  // MARK: Body
+	// MARK: Body
 
-  public var body: some View {
-    TextField(placeholder, text: $display)
-      .multilineTextAlignment(.leading)
-      #if os(iOS)
-        .autocorrectionDisabled()
-        .textInputAutocapitalization(.never)
-      #endif
-      .onAppear { display = text }
-      .onChange(of: display) { old, new in
-        let formatted = format(new, inserting: new.count > old.count)
-        // Rewriting `display` when filtering changed the value makes the
-        // field revert rejected characters; comparing lengths gives
-        // insert-vs-delete for IPv4's automatic dot.
-        if formatted != new { display = formatted }
-        if formatted != text { text = formatted }
-      }
-      .onChange(of: text) { _, newValue in
-        // Reflect external changes (version switch reset, resolved address…).
-        if newValue != display { display = format(newValue, inserting: false) }
-      }
-  }
+	public var body: some View {
+		TextField(placeholder, text: $display)
+			.multilineTextAlignment(.leading)
+			#if os(iOS)
+				.autocorrectionDisabled()
+				.textInputAutocapitalization(.never)
+			#endif
+			.onAppear { display = text }
+			.onChange(of: display) { old, new in
+				let formatted = format(new, inserting: new.count > old.count)
+				// Rewriting `display` when filtering changed the value makes the
+				// field revert rejected characters; comparing lengths gives
+				// insert-vs-delete for IPv4's automatic dot.
+				if formatted != new { display = formatted }
+				if formatted != text { text = formatted }
+			}
+			.onChange(of: text) { _, newValue in
+				// Reflect external changes (version switch reset, resolved address…).
+				if newValue != display { display = format(newValue, inserting: false) }
+			}
+	}
 
-  // MARK: Configuration per filter
+	// MARK: Configuration per filter
 
-  private var placeholder: String {
-    switch filter {
-    case .ipv4: "0.0.0.0"
-    case .ipv6: "::"
-    case .port: "0"
-    }
-  }
+	private var placeholder: String {
+		switch filter {
+		case .ipv4: "0.0.0.0"
+		case .ipv6: "::"
+		case .port: "0"
+		}
+	}
 
-  // MARK: Formatting
+	// MARK: Formatting
 
-  private func format(_ input: String, inserting: Bool) -> String {
-    switch filter {
-    case .ipv4: formatIPv4(input, inserting: inserting)
-    case .ipv6: sanitizeIPv6(input)
-    case .port: sanitizePort(input)
-    }
-  }
+	private func format(_ input: String, inserting: Bool) -> String {
+		switch filter {
+		case .ipv4: formatIPv4(input, inserting: inserting)
+		case .ipv6: sanitizeIPv6(input)
+		case .port: sanitizePort(input)
+		}
+	}
 
-  /// Groups digits into up to four octets (≤ 3 digits, ≤ 255 each).
-  /// On insertion only, appends a dot once an octet fills up — so the dot
-  /// appears right after the 3rd digit, yet Delete can still remove it.
-  private func formatIPv4(_ input: String, inserting: Bool) -> String {
-    var octets: [String] = [""]
-    for character in input {
-      if character == "." {
-        if octets.count < 4, octets[octets.count - 1].isEmpty == false {
-          octets.append("")
-        }
-      } else if character.isNumber {
-        if octets[octets.count - 1].count == 3 {
-          if octets.count < 4 { octets.append(String(character)) }
-        } else {
-          var current = octets[octets.count - 1] + String(character)
-          if let value = Int(current), value > 255 { current = "255" }
-          octets[octets.count - 1] = current
-        }
-      }
-    }
-    var result = octets.joined(separator: ".")
-    if inserting, octets.count < 4, octets[octets.count - 1].count == 3 {
-      result += "."
-    }
-    return result
-  }
+	/// Groups digits into up to four octets (≤ 3 digits, ≤ 255 each).
+	/// On insertion only, appends a dot once an octet fills up — so the dot
+	/// appears right after the 3rd digit, yet Delete can still remove it.
+	private func formatIPv4(_ input: String, inserting: Bool) -> String {
+		var octets: [String] = [""]
+		for character in input {
+			if character == "." {
+				if octets.count < 4, octets[octets.count - 1].isEmpty == false {
+					octets.append("")
+				}
+			} else if character.isNumber {
+				if octets[octets.count - 1].count == 3 {
+					if octets.count < 4 { octets.append(String(character)) }
+				} else {
+					var current = octets[octets.count - 1] + String(character)
+					if let value = Int(current), value > 255 { current = "255" }
+					octets[octets.count - 1] = current
+				}
+			}
+		}
+		var result = octets.joined(separator: ".")
+		if inserting, octets.count < 4, octets[octets.count - 1].count == 3 {
+			result += "."
+		}
+		return result
+	}
 
-  /// Keeps hex digits and colons; collapses runs of 3+ colons to `::`.
-  private func sanitizeIPv6(_ input: String) -> String {
-    var s = String(input.filter { $0.isHexDigit || $0 == ":" })
-    while s.contains(":::") { s = s.replacingOccurrences(of: ":::", with: "::") }
-    return String(s.prefix(39))  // max IPv6 string length
-  }
+	/// Keeps hex digits and colons; collapses runs of 3+ colons to `::`.
+	private func sanitizeIPv6(_ input: String) -> String {
+		var s = String(input.filter { $0.isHexDigit || $0 == ":" })
+		while s.contains(":::") { s = s.replacingOccurrences(of: ":::", with: "::") }
+		return String(s.prefix(39))  // max IPv6 string length
+	}
 
-  /// Keeps digits only; clamps to 0–65 535.
-  private func sanitizePort(_ input: String) -> String {
-    let digits = String(input.filter(\.isNumber).prefix(5))
-    if let value = Int(digits), value > 65_535 { return "65535" }
-    return digits
-  }
+	/// Keeps digits only; clamps to 0–65 535.
+	private func sanitizePort(_ input: String) -> String {
+		let digits = String(input.filter(\.isNumber).prefix(5))
+		if let value = Int(digits), value > 65_535 { return "65535" }
+		return digits
+	}
 }
 
 // MARK: - Previews
 
 #Preview("IPv4") {
-  @Previewable @State var addr = "192.168.1.1"
-  Form { IPAddressField(.ipv4, text: $addr) }
+	@Previewable @State var addr = "192.168.1.1"
+	Form { IPAddressField(.ipv4, text: $addr) }
 }
 
 #Preview("IPv6") {
-  @Previewable @State var addr = ""
-  Form { IPAddressField(.ipv6, text: $addr) }
+	@Previewable @State var addr = ""
+	Form { IPAddressField(.ipv6, text: $addr) }
 }
 
 #Preview("Port") {
-  @Previewable @State var port = "8080"
-  Form { IPAddressField(.port, text: $port) }
+	@Previewable @State var port = "8080"
+	Form { IPAddressField(.port, text: $port) }
 }
