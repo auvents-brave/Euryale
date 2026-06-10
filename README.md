@@ -40,7 +40,7 @@ A SwiftUI-friendly `MKMapView` wrapper plus a popup variant that pairs an embedd
 
 - [`MapKitView`](https://auvents-brave.github.io/Euryale/documentation/euryale/mapkitview/) — Cross-platform `MKMapView` SwiftUI wrapper with on-disk-cached XYZ/TMS tile overlays (configurable cache age and optional App Group container for cross-app sharing). Optionally renders a styled overlay layer of markers and tracks with tap selection.
 - [`PopupMapView`](https://auvents-brave.github.io/Euryale/documentation/euryale/popupmapview/) — Pre-built popover that embeds a `MapKitView` and an "Open in Maps" escape hatch. Adapts gracefully to watchOS (direct Maps launch) and tvOS (no Open-in-Maps button).
-- [`MapMarker`](https://auvents-brave.github.io/Euryale/documentation/euryale/mapmarker/) — A styled, identifiable map annotation (coordinate, label, opacity) for the markable overlay layer.
+- [`MapMarker`](https://auvents-brave.github.io/Euryale/documentation/euryale/mapmarker/) — A styled, identifiable map annotation (coordinate, label, opacity) for the markable overlay layer, drawn according to a [`MapPositionStyle`](https://auvents-brave.github.io/Euryale/documentation/euryale/mappositionstyle/) (dot, heading triangle, boat hull…) with caller-supplied colours.
 - [`MapTrack`](https://auvents-brave.github.io/Euryale/documentation/euryale/maptrack/) and [`MapTrackStyle`](https://auvents-brave.github.io/Euryale/documentation/euryale/maptrackstyle/) — A polyline track overlay with a configurable line style.
 
 ### Web content
