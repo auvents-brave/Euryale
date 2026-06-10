@@ -13,6 +13,6 @@ jobs:
     uses: ./.github/workflows/_apple-sim-tests.yml
     with:
       workflow-name: "tvOS"
-      scheme: "Euryale-Package"
+      scheme: "Euryale"
       sim-runtime-prefix: "com.apple.CoreSimulator.SimRuntime.tvOS"
       device-name-regex: "Apple TV"

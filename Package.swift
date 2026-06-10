@@ -23,11 +23,7 @@ var prods: [Product] = [
 	.library(
 		name: "Euryale",
 		targets: ["Euryale"]
-	),
-	.library(
-		name: "HelpKit",
-		targets: ["HelpKit"]
-	),
+	)
 ]
 
 var deps: [Package.Dependency] = [
@@ -87,24 +83,15 @@ var targs: [Target] = [
 		dependencies: [
 			.product(name: "Logging", package: "swift-log"),
 			.product(name: "Stheno", package: "stheno"),
+			// Markdown rendering for the in-app help browser (HelpKit folder).
+			.product(name: "MarkdownUI", package: "swift-markdown-ui"),
 		],
 		path: "Sources/Euryale",
 		resources: [
 			.process("Resources")
 		],
 		swiftSettings: swiftSettings
-	),
-	.target(
-		name: "HelpKit",
-		dependencies: [
-			.product(name: "MarkdownUI", package: "swift-markdown-ui")
-		],
-		path: "Sources/HelpKit",
-		resources: [
-			.process("Resources")
-		],
-		swiftSettings: swiftSettings
-	),
+	)
 ]
 
 targs.append(
@@ -112,7 +99,6 @@ targs.append(
 		name: "EuryaleTests",
 		dependencies: [
 			"Euryale",
-			"HelpKit",
 			.product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
 			.product(name: "ViewInspector", package: "ViewInspector"),
 		],

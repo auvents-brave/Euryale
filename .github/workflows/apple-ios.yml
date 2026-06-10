@@ -13,7 +13,7 @@ jobs:
     uses: ./.github/workflows/_apple-sim-tests.yml
     with:
       workflow-name: "iOS iPhone"
-      scheme: "Euryale-Package"
+      scheme: "Euryale"
       sim-runtime-prefix: "com.apple.CoreSimulator.SimRuntime.iOS"
       device-name-regex: "^iPhone 17$"
       upload-snapshots: true

@@ -18,5 +18,5 @@ jobs:
           xcode-version: "26.5"
       - name: Check Swift Version
         run: swift --version
-      - run: xcodebuild -resolvePackageDependencies -scheme "Euryale-Package"
-      - run: xcodebuild test -scheme "Euryale-Package" -destination "platform=macOS,variant=Mac Catalyst"
+      - run: xcodebuild -resolvePackageDependencies -scheme "Euryale"
+      - run: xcodebuild test -scheme "Euryale" -destination "platform=macOS,variant=Mac Catalyst"

@@ -9,7 +9,7 @@ import SnapshotTesting
 import SwiftUI
 import Testing
 
-@testable import HelpKit
+@testable import Euryale
 
 // iPhone-only: see the note in Pill.Snapshot.Tests.swift. References are @3x.
 #if os(iOS) && !targetEnvironment(macCatalyst)
