@@ -84,7 +84,14 @@ var targs: [Target] = [
 			.product(name: "Logging", package: "swift-log"),
 			.product(name: "Stheno", package: "stheno"),
 			// Markdown rendering for the in-app help browser (HelpKit folder).
-			.product(name: "MarkdownUI", package: "swift-markdown-ui"),
+			// Platform-conditional, matching HelpBrowser's own gate: keeps
+			// MarkdownUI's dependency tree (swift-cmark declares a watchOS 8
+			// floor, below Xcode's supported minimum) out of the watch build.
+			.product(
+				name: "MarkdownUI",
+				package: "swift-markdown-ui",
+				condition: .when(platforms: [.iOS, .macOS, .visionOS, .macCatalyst])
+			),
 		],
 		path: "Sources/Euryale",
 		resources: [
