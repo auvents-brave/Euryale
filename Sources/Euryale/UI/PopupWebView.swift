@@ -48,7 +48,11 @@ public struct PopupWebView: View {
 		#else
 			HStack {
 				PopupPresenter {
-					Image(systemName: "link")
+					if let title, !title.isEmpty {
+						Label(title, systemImage: "link")
+					} else {
+						Image(systemName: "link")
+					}
 				} presentedContent: {
 					ZStack(alignment: .bottomTrailing) {
 						WebKitView(url: url)
