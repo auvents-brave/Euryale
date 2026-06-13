@@ -63,13 +63,24 @@ public struct PaginatedView<Page: Identifiable, Content: View>: View {
 		case stacked
 	}
 
-	@State private var currentIndex: Int = 0
+	@State private var internalIndex: Int = 0
 
 	private let pages: [Page]
 	private let style: Style
 	private let indicatorAlignment: Alignment
 	private let accentColor: Color?
+	private let onSelect: (() -> Void)?
+	/// When non-`nil`, the page index is owned by the wrapper (``PaginatedPill``)
+	/// so its focus chrome can scale the whole pill; otherwise the view keeps its
+	/// own `internalIndex`.
+	private let externalIndex: Binding<Int>?
+	/// Whether this view installs its own tvOS focus handling. ``PaginatedPill``
+	/// sets this to `false` and installs focus on the outer (chromed) view.
+	private let managesFocus: Bool
 	@ViewBuilder private let content: (Page) -> Content
+
+	/// The page index, routed to the wrapper's binding when embedded.
+	private var currentIndex: Binding<Int> { externalIndex ?? $internalIndex }
 
 	/// Creates a paginated pill.
 	///
@@ -87,49 +98,101 @@ public struct PaginatedView<Page: Identifiable, Content: View>: View {
 	///   - accentColor: Optional override for the tint used by the active
 	///     indicator on systems without Liquid Glass.  Ignored on OS 26+.
 	///     Defaults to the SwiftUI environment tint (`Color.accentColor`).
+	///   - onSelect: Invoked when the cell is selected — a *Select* press on
+	///     tvOS (where the pill is focusable) or a tap elsewhere. When `nil`,
+	///     selection is disabled. On tvOS, left/right paging is always wired
+	///     regardless of this argument when there is more than one page.
 	///   - content: A view builder producing the content for each page.
 	public init(
 		pages: [Page],
 		style: Style = .overlay,
 		indicatorAlignment: Alignment = .bottomTrailing,
 		accentColor: Color? = nil,
+		onSelect: (() -> Void)? = nil,
 		@ViewBuilder content: @escaping (Page) -> Content
 	) {
 		self.pages = pages
 		self.style = style
 		self.indicatorAlignment = indicatorAlignment
 		self.accentColor = accentColor
+		self.onSelect = onSelect
+		self.externalIndex = nil
+		self.managesFocus = true
+		self.content = content
+	}
+
+	/// Wrapper init: the page index is owned by ``PaginatedPill`` and tvOS focus
+	/// is installed on the outer chromed view, not here.
+	init(
+		pages: [Page],
+		style: Style,
+		indicatorAlignment: Alignment,
+		accentColor: Color?,
+		index: Binding<Int>,
+		@ViewBuilder content: @escaping (Page) -> Content
+	) {
+		self.pages = pages
+		self.style = style
+		self.indicatorAlignment = indicatorAlignment
+		self.accentColor = accentColor
+		self.onSelect = nil
+		self.externalIndex = index
+		self.managesFocus = false
 		self.content = content
 	}
 
 	public var body: some View {
-		Group {
-			if pages.isEmpty {
-				Color.clear
-					.frame(height: 0)
-			} else {
-				switch style {
-				case .overlay:
-					overlayLayout
-				case .stacked:
-					stackedLayout
+		let paginator =
+			Group {
+				if pages.isEmpty {
+					Color.clear
+						.frame(height: 0)
+				} else {
+					switch style {
+					case .overlay:
+						overlayLayout
+					case .stacked:
+						stackedLayout
+					}
 				}
 			}
-		}
-		.frame(maxWidth: .infinity, alignment: .leading)
-		.contentShape(Rectangle())
-		// Use `.simultaneousGesture` so the swipe coexists with the per-dot
-		// Button taps.  On macOS, a plain `.gesture(...)` on the container
-		// preempts pointer events from reaching the inner buttons.
-		#if !os(tvOS)
-			.simultaneousGesture(swipeGesture)
-		#endif
-		.accessibilityIdentifier("PaginatedView")
-		.accessibilityElement(children: .contain)
-		.accessibilityLabel(
-			pages.isEmpty
-				? "Empty"
-				: "Page \(currentIndex + 1) of \(pages.count)"
+			.frame(maxWidth: .infinity, alignment: .leading)
+			.contentShape(Rectangle())
+			// Use `.simultaneousGesture` so the swipe coexists with the per-dot
+			// Button taps.  On macOS, a plain `.gesture(...)` on the container
+			// preempts pointer events from reaching the inner buttons.
+			#if !os(tvOS)
+				.simultaneousGesture(swipeGesture)
+			#endif
+
+		// tvOS: the whole pill is the single focus target. Select fires
+		// `onSelect`; left/right page within the pill (wrapping). The indicator
+		// dots are non-interactive on tvOS so they don't steal focus. When
+		// embedded in ``PaginatedPill`` (`managesFocus == false`) the wrapper
+		// installs focus on the outer, chromed view instead.
+		return
+			Group {
+				if managesFocus {
+					paginator.modifier(focusModifier)
+				} else {
+					paginator
+				}
+			}
+			.accessibilityIdentifier("PaginatedView")
+			.accessibilityElement(children: .contain)
+			.accessibilityLabel(
+				pages.isEmpty
+					? "Empty"
+					: "Page \(currentIndex.wrappedValue + 1) of \(pages.count)"
+			)
+	}
+
+	/// The tvOS focus / selection wiring installed when this view manages its
+	/// own focus (standalone use, not embedded in ``PaginatedPill``).
+	private var focusModifier: PillFocusModifier {
+		PillFocusModifier(
+			onSelect: onSelect,
+			onMove: pages.count > 1 ? { page(in: $0) } : nil
 		)
 	}
 
@@ -173,18 +236,36 @@ public struct PaginatedView<Page: Identifiable, Content: View>: View {
 		ZStack(alignment: .leading) {
 			ForEach(Array(pages.enumerated()), id: \.element.id) { index, page in
 				content(page)
-					.opacity(index == currentIndex ? 1 : 0)
-					.accessibilityHidden(index != currentIndex)
+					.opacity(index == currentIndex.wrappedValue ? 1 : 0)
+					.accessibilityHidden(index != currentIndex.wrappedValue)
 			}
 		}
-		.animation(.spring(response: 0.35, dampingFraction: 0.85), value: currentIndex)
+		.animation(.spring(response: 0.35, dampingFraction: 0.85), value: currentIndex.wrappedValue)
+	}
+
+	// MARK: Page navigation
+
+	/// Steps one page in `direction`, wrapping around at the ends. Used by the
+	/// tvOS Siri Remote left/right move commands.
+	private func page(in direction: MoveCommandDirection) {
+		guard pages.count > 1 else { return }
+		withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+			switch direction {
+			case .left:
+				currentIndex.wrappedValue = (currentIndex.wrappedValue - 1 + pages.count) % pages.count
+			case .right:
+				currentIndex.wrappedValue = (currentIndex.wrappedValue + 1) % pages.count
+			default:
+				break
+			}
+		}
 	}
 
 	// MARK: Indicator dots
 
 	@ViewBuilder
 	private var indicatorRow: some View {
-		HStack(spacing: 8) {
+		HStack(spacing: PillMetrics.indicatorSpacing) {
 			ForEach(pages.indices, id: \.self) { index in
 				indicatorButton(for: index)
 			}
@@ -193,21 +274,29 @@ public struct PaginatedView<Page: Identifiable, Content: View>: View {
 
 	@ViewBuilder
 	private func indicatorButton(for index: Int) -> some View {
-		Button {
-			withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-				currentIndex = index
+		#if os(tvOS)
+			// Non-interactive on tvOS: a focusable Button here would steal focus
+			// from the pill cell, breaking the left/right paging. The dots are
+			// driven by the Siri Remote move commands instead.
+			indicatorShape(isActive: index == currentIndex.wrappedValue)
+				.accessibilityHidden(true)
+		#else
+			Button {
+				withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+					currentIndex.wrappedValue = index
+				}
+			} label: {
+				indicatorShape(isActive: index == currentIndex.wrappedValue)
 			}
-		} label: {
-			indicatorShape(isActive: index == currentIndex)
-		}
-		.buttonStyle(.plain)
-		.accessibilityLabel("Go to page \(index + 1)")
-		.accessibilityAddTraits(index == currentIndex ? [.isSelected] : [])
+			.buttonStyle(.plain)
+			.accessibilityLabel("Go to page \(index + 1)")
+			.accessibilityAddTraits(index == currentIndex.wrappedValue ? [.isSelected] : [])
+		#endif
 	}
 
 	@ViewBuilder
 	private func indicatorShape(isActive: Bool) -> some View {
-		let size: CGFloat = isActive ? 10 : 7
+		let size: CGFloat = isActive ? PillMetrics.indicatorActiveSize : PillMetrics.indicatorInactiveSize
 
 		if #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
 			// Liquid Glass: no colour tint at all.  The active dot is
@@ -254,11 +343,11 @@ public struct PaginatedView<Page: Identifiable, Content: View>: View {
 
 					let newIndex: Int =
 						dx < 0
-						? min(currentIndex + 1, pages.count - 1)
-						: max(currentIndex - 1, 0)
+						? min(currentIndex.wrappedValue + 1, pages.count - 1)
+						: max(currentIndex.wrappedValue - 1, 0)
 
 					withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-						currentIndex = newIndex
+						currentIndex.wrappedValue = newIndex
 					}
 				}
 		}
@@ -276,21 +365,29 @@ public struct PaginatedPill<Page: Identifiable, Content: View>: View {
 	private let style: Style
 	private let indicatorAlignment: Alignment
 	private let accentColor: Color?
+	private let onSelect: (() -> Void)?
 	@ViewBuilder private let content: (Page) -> Content
 
+	/// The page index lives here (not in the embedded ``PaginatedView``) so the
+	/// tvOS focus chrome can scale the whole chromed pill, background included,
+	/// while still driving the inner pager's current page.
+	@State private var index = 0
+
 	/// Creates a paginated pill.
-	/// See ``PaginatedView/init(pages:style:indicatorAlignment:accentColor:content:)``.
+	/// See ``PaginatedView/init(pages:style:indicatorAlignment:accentColor:onSelect:content:)``.
 	public init(
 		pages: [Page],
 		style: Style = .overlay,
 		indicatorAlignment: Alignment = .bottomTrailing,
 		accentColor: Color? = nil,
+		onSelect: (() -> Void)? = nil,
 		@ViewBuilder content: @escaping (Page) -> Content
 	) {
 		self.pages = pages
 		self.style = style
 		self.indicatorAlignment = indicatorAlignment
 		self.accentColor = accentColor
+		self.onSelect = onSelect
 		self.content = content
 	}
 
@@ -300,13 +397,38 @@ public struct PaginatedPill<Page: Identifiable, Content: View>: View {
 			style: style,
 			indicatorAlignment: indicatorAlignment,
 			accentColor: accentColor,
+			index: $index,
 			content: content
 		)
-		.padding(10)
+		.padding(PillMetrics.contentPadding)
 		.frame(maxWidth: .infinity, alignment: .leading)
 		.background(Color.secondary.opacity(0.1))
-		.clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+		.clipShape(RoundedRectangle(cornerRadius: PillMetrics.cornerRadius, style: .continuous))
+		// Install tvOS focus on the outer, chromed pill so the focus lift scales
+		// the whole pill. Select fires `onSelect`; left/right page (wrapping).
+		.modifier(
+			PillFocusModifier(
+				onSelect: onSelect,
+				onMove: pages.count > 1 ? { step($0) } : nil
+			)
+		)
 		.accessibilityIdentifier("PaginatedPill")
+	}
+
+	/// Steps one page in `direction`, wrapping at the ends — the tvOS Siri
+	/// Remote left/right handler for the chromed pill.
+	private func step(_ direction: MoveCommandDirection) {
+		guard pages.count > 1 else { return }
+		withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+			switch direction {
+			case .left:
+				index = (index - 1 + pages.count) % pages.count
+			case .right:
+				index = (index + 1) % pages.count
+			default:
+				break
+			}
+		}
 	}
 }
 
