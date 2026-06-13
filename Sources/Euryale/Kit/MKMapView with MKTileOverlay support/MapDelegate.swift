@@ -22,6 +22,11 @@
 		/// to the chart when the map is rotated.
 		var onRegionChange: ((MKMapView) -> Void)?
 
+		/// Called once the visible region settles after a gesture (not continuously
+		/// during it), set by the markable representable to surface the on-screen
+		/// bounds to the app — e.g. to draw a large dataset only where it shows.
+		var onRegionSettled: ((MKMapView) -> Void)?
+
 		/// Provides a renderer for tile overlays and styled polylines.
 		/// - Parameters:
 		///   - mapView: The `MKMapView` requesting the renderer.
@@ -82,6 +87,13 @@
 		/// directional markers when the map is rotated.
 		func mapViewDidChangeVisibleRegion(_ mapView: MKMapView) {
 			onRegionChange?(mapView)
+		}
+
+		/// Reports the settled visible region after a pan / zoom / rotate gesture
+		/// ends, so the app can refilter what it draws without churning on every
+		/// intermediate frame.
+		func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+			onRegionSettled?(mapView)
 		}
 
 		/// Reports a tapped marker, then immediately deselects it so tapping the
