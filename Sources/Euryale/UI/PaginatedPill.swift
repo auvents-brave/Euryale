@@ -190,10 +190,14 @@ public struct PaginatedView<Page: Identifiable, Content: View>: View {
 	/// The tvOS focus / selection wiring installed when this view manages its
 	/// own focus (standalone use, not embedded in ``PaginatedPill``).
 	private var focusModifier: PillFocusModifier {
-		PillFocusModifier(
-			onSelect: onSelect,
-			onMove: pages.count > 1 ? { page(in: $0) } : nil
-		)
+		#if os(tvOS)
+			PillFocusModifier(
+				onSelect: onSelect,
+				onMove: pages.count > 1 ? { page(in: $0) } : nil
+			)
+		#else
+			PillFocusModifier(onSelect: onSelect)
+		#endif
 	}
 
 	// MARK: Layouts
@@ -245,21 +249,23 @@ public struct PaginatedView<Page: Identifiable, Content: View>: View {
 
 	// MARK: Page navigation
 
-	/// Steps one page in `direction`, wrapping around at the ends. Used by the
-	/// tvOS Siri Remote left/right move commands.
-	private func page(in direction: MoveCommandDirection) {
-		guard pages.count > 1 else { return }
-		withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-			switch direction {
-			case .left:
-				currentIndex.wrappedValue = (currentIndex.wrappedValue - 1 + pages.count) % pages.count
-			case .right:
-				currentIndex.wrappedValue = (currentIndex.wrappedValue + 1) % pages.count
-			default:
-				break
+	#if os(tvOS)
+		/// Steps one page in `direction`, wrapping around at the ends. Used by the
+		/// tvOS Siri Remote left/right move commands.
+		private func page(in direction: MoveCommandDirection) {
+			guard pages.count > 1 else { return }
+			withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+				switch direction {
+				case .left:
+					currentIndex.wrappedValue = (currentIndex.wrappedValue - 1 + pages.count) % pages.count
+				case .right:
+					currentIndex.wrappedValue = (currentIndex.wrappedValue + 1) % pages.count
+				default:
+					break
+				}
 			}
 		}
-	}
+	#endif
 
 	// MARK: Indicator dots
 
@@ -406,30 +412,36 @@ public struct PaginatedPill<Page: Identifiable, Content: View>: View {
 		.clipShape(RoundedRectangle(cornerRadius: PillMetrics.cornerRadius, style: .continuous))
 		// Install tvOS focus on the outer, chromed pill so the focus lift scales
 		// the whole pill. Select fires `onSelect`; left/right page (wrapping).
-		.modifier(
-			PillFocusModifier(
-				onSelect: onSelect,
-				onMove: pages.count > 1 ? { step($0) } : nil
+		#if os(tvOS)
+			.modifier(
+				PillFocusModifier(
+					onSelect: onSelect,
+					onMove: pages.count > 1 ? { step($0) } : nil
+				)
 			)
-		)
+		#else
+			.modifier(PillFocusModifier(onSelect: onSelect))
+		#endif
 		.accessibilityIdentifier("PaginatedPill")
 	}
 
-	/// Steps one page in `direction`, wrapping at the ends — the tvOS Siri
-	/// Remote left/right handler for the chromed pill.
-	private func step(_ direction: MoveCommandDirection) {
-		guard pages.count > 1 else { return }
-		withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-			switch direction {
-			case .left:
-				index = (index - 1 + pages.count) % pages.count
-			case .right:
-				index = (index + 1) % pages.count
-			default:
-				break
+	#if os(tvOS)
+		/// Steps one page in `direction`, wrapping at the ends — the tvOS Siri
+		/// Remote left/right handler for the chromed pill.
+		private func step(_ direction: MoveCommandDirection) {
+			guard pages.count > 1 else { return }
+			withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+				switch direction {
+				case .left:
+					index = (index - 1 + pages.count) % pages.count
+				case .right:
+					index = (index + 1) % pages.count
+				default:
+					break
+				}
 			}
 		}
-	}
+	#endif
 }
 
 // MARK: - Previews

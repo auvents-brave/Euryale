@@ -18,7 +18,11 @@ extension View {
 	/// - Parameter onSelect: Invoked on a *Select* press (tvOS) or a tap
 	///   (other platforms).
 	public func pillSelectable(onSelect: @escaping () -> Void) -> some View {
-		modifier(PillFocusModifier(onSelect: onSelect, onMove: nil))
+		#if os(tvOS)
+			modifier(PillFocusModifier(onSelect: onSelect, onMove: nil))
+		#else
+			modifier(PillFocusModifier(onSelect: onSelect))
+		#endif
 	}
 }
 
@@ -31,7 +35,9 @@ extension View {
 struct PillFocusModifier: ViewModifier {
 
 	let onSelect: (() -> Void)?
-	let onMove: ((MoveCommandDirection) -> Void)?
+	#if os(tvOS)
+		let onMove: ((MoveCommandDirection) -> Void)?
+	#endif
 
 	#if os(tvOS)
 		@FocusState private var isFocused: Bool
