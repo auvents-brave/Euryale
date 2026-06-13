@@ -131,7 +131,7 @@ public struct MapTrack: Identifiable {
 /// The map's currently visible region — centre plus latitude/longitude span,
 /// reported by `onVisibleRegion(_:)`. Use ``contains(_:)`` to keep only the
 /// objects on screen (e.g. when drawing a large library only where it shows).
-public struct MapVisibleRegion: Equatable {
+public struct MapVisibleRegion: Equatable, Sendable {
 
 	/// The region's centre coordinate.
 	public var center: Coordinate
@@ -216,6 +216,16 @@ extension MapKitView {
 	public func onVisibleRegion(_ handler: @escaping (MapVisibleRegion) -> Void) -> MapKitView {
 		var copy = self
 		copy.onRegionSettled = handler
+		return copy
+	}
+
+	/// Reports the chart coordinate of a single tap on open water (a tap on a
+	/// marker selects it instead, via `onMarkerSelected(_:)`). Lets the caller
+	/// pick points on the map — e.g. the start and end of a planned route. No-op
+	/// on watchOS.
+	public func onMapTap(_ handler: @escaping (Coordinate) -> Void) -> MapKitView {
+		var copy = self
+		copy.onMapTap = handler
 		return copy
 	}
 }
@@ -467,6 +477,7 @@ extension MapKitView {
 			let zoomSpan: Double
 			let onSelectMarker: ((AnyHashable) -> Void)?
 			let onRegionSettled: ((MapVisibleRegion) -> Void)?
+			let onMapTap: ((Coordinate) -> Void)?
 
 			func makeCoordinator() -> MarkableMapState { MarkableMapState() }
 			func makeNSView(context: Context) -> MKMapView {
@@ -475,6 +486,7 @@ extension MapKitView {
 				// delegate would otherwise be deallocated and custom rendering
 				// (vessel marker, tile overlays) would stop.
 				map.delegate = context.coordinator.mapDelegate
+				context.coordinator.installMapTapIfNeeded(on: map)
 				return map
 			}
 			func updateNSView(_ map: MKMapView, context: Context) {
@@ -484,6 +496,7 @@ extension MapKitView {
 				map.isPitchEnabled = isInteractive
 				context.coordinator.mapDelegate.onSelect = onSelectMarker
 				context.coordinator.bindRegionSettled(onRegionSettled)
+				context.coordinator.bindMapTap(onMapTap)
 				context.coordinator.apply(
 					markers: markers, tracks: tracks,
 					centerCoordinate: centerCoordinate, recenterToken: recenterToken,
@@ -503,6 +516,7 @@ extension MapKitView {
 			let zoomSpan: Double
 			let onSelectMarker: ((AnyHashable) -> Void)?
 			let onRegionSettled: ((MapVisibleRegion) -> Void)?
+			let onMapTap: ((Coordinate) -> Void)?
 
 			func makeCoordinator() -> MarkableMapState { MarkableMapState() }
 			func makeUIView(context: Context) -> MKMapView {
@@ -511,6 +525,7 @@ extension MapKitView {
 				// delegate would otherwise be deallocated and custom rendering
 				// (vessel marker, tile overlays) would stop.
 				map.delegate = context.coordinator.mapDelegate
+				context.coordinator.installMapTapIfNeeded(on: map)
 				return map
 			}
 			func updateUIView(_ map: MKMapView, context: Context) {
@@ -523,6 +538,7 @@ extension MapKitView {
 				#endif
 				context.coordinator.mapDelegate.onSelect = onSelectMarker
 				context.coordinator.bindRegionSettled(onRegionSettled)
+				context.coordinator.bindMapTap(onMapTap)
 				context.coordinator.apply(
 					markers: markers, tracks: tracks,
 					centerCoordinate: centerCoordinate, recenterToken: recenterToken,
@@ -551,6 +567,41 @@ extension MapKitView {
 		private var renderedHeading: Double = 0
 		/// Whether the rotation-tracking callback has been installed.
 		private var observingRegion = false
+		/// Whether the tap recogniser has been attached to the map.
+		private var didInstallMapTap = false
+
+		/// Attaches a single tap recogniser to the map (once), routed to the
+		/// delegate which converts the point and forwards a coordinate.
+		func installMapTapIfNeeded(on map: MKMapView) {
+			guard !didInstallMapTap else { return }
+			didInstallMapTap = true
+			mapDelegate.tappedMap = map
+			#if canImport(UIKit)
+				let recognizer = UITapGestureRecognizer(
+					target: mapDelegate, action: #selector(MapDelegate.handleMapTap(_:)))
+				recognizer.delegate = mapDelegate
+				// Never swallow the touch — MapKit keeps its own pan/selection handling,
+				// and the delegate simply ignores taps when no handler is bound.
+				recognizer.cancelsTouchesInView = false
+				map.addGestureRecognizer(recognizer)
+			#elseif canImport(AppKit)
+				let recognizer = NSClickGestureRecognizer(
+					target: mapDelegate, action: #selector(MapDelegate.handleMapTap(_:)))
+				map.addGestureRecognizer(recognizer)
+			#endif
+		}
+
+		/// Installs (or clears) the public map-tap callback, wrapping the delegate's
+		/// CoreLocation coordinate as a Stheno ``Coordinate``.
+		func bindMapTap(_ handler: ((Coordinate) -> Void)?) {
+			guard let handler else {
+				mapDelegate.onMapTap = nil
+				return
+			}
+			mapDelegate.onMapTap = { coordinate in
+				handler(Coordinate(latitude: coordinate.latitude, longitude: coordinate.longitude))
+			}
+		}
 
 		/// Installs (or clears) the public "region settled" callback, translating the
 		/// map's `MKCoordinateRegion` into a ``MapVisibleRegion`` for the caller.
