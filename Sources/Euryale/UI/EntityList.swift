@@ -80,10 +80,12 @@ extension View {
 			#if os(macOS) || os(tvOS)
 				menu
 			#else
-				menu.swipeActions(edge: .trailing, allowsFullSwipe: actions.contains { $0.isDefaultSwipe }) {
-					// SwiftUI lays trailing-swipe buttons right-to-left, so reverse
-					// them to keep the declared order readable under the thumb.
-					ForEach(actions.reversed()) { action in
+				// `allowsFullSwipe: false` on purpose: with a full-swipe destructive
+				// action the system shows the action *twice* while dragging (the
+				// button plus the expanding red fill), which read as two Delete
+				// buttons. Explicit buttons only — one per action, in declared order.
+				menu.swipeActions(edge: .trailing, allowsFullSwipe: false) {
+					ForEach(actions) { action in
 						rowActionButton(action)
 					}
 				}
