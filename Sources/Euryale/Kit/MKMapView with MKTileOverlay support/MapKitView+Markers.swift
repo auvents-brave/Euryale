@@ -26,6 +26,10 @@ public enum MapPositionStyle: Sendable {
 	/// white outline for contrast. When no direction is known (e.g. stationary),
 	/// the hull points north.
 	case boatHull(Color)
+	/// A coloured disc badge carrying a white SF Symbol glyph — for fixed,
+	/// non-vessel objects such as aids to navigation, base stations, aircraft or
+	/// chart marks. Always drawn upright (direction is ignored).
+	case symbol(systemName: String, color: Color)
 }
 
 // MARK: - MapTrackStyle
@@ -122,6 +126,35 @@ public struct MapTrack: Identifiable {
 	}
 }
 
+// MARK: - MapVisibleRegion
+
+/// The map's currently visible region — centre plus latitude/longitude span,
+/// reported by `onVisibleRegion(_:)`. Use ``contains(_:)`` to keep only the
+/// objects on screen (e.g. when drawing a large library only where it shows).
+public struct MapVisibleRegion: Equatable, Sendable {
+
+	/// The region's centre coordinate.
+	public var center: Coordinate
+	/// Full height of the region, in degrees of latitude.
+	public var latitudeDelta: Double
+	/// Full width of the region, in degrees of longitude.
+	public var longitudeDelta: Double
+
+	/// Creates a visible region.
+	public init(center: Coordinate, latitudeDelta: Double, longitudeDelta: Double) {
+		self.center = center
+		self.latitudeDelta = latitudeDelta
+		self.longitudeDelta = longitudeDelta
+	}
+
+	/// Whether `coordinate` lies within the region (antimeridian wrap is not
+	/// handled — fine for a regional chart).
+	public func contains(_ coordinate: Coordinate) -> Bool {
+		abs(coordinate.latitude - center.latitude) <= latitudeDelta / 2
+			&& abs(coordinate.longitude - center.longitude) <= longitudeDelta / 2
+	}
+}
+
 // MARK: - MapKitView modifiers
 
 extension MapKitView {
@@ -174,6 +207,25 @@ extension MapKitView {
 	public func onMarkerSelected(_ handler: @escaping (AnyHashable) -> Void) -> MapKitView {
 		var copy = self
 		copy.onSelectMarker = handler
+		return copy
+	}
+
+	/// Reports the map's visible region once it settles after a pan, zoom or
+	/// rotate (not continuously during the gesture), so the caller can filter
+	/// what it draws to the screen. No-op on watchOS.
+	public func onVisibleRegion(_ handler: @escaping (MapVisibleRegion) -> Void) -> MapKitView {
+		var copy = self
+		copy.onRegionSettled = handler
+		return copy
+	}
+
+	/// Reports the chart coordinate of a single tap on open water (a tap on a
+	/// marker selects it instead, via `onMarkerSelected(_:)`). Lets the caller
+	/// pick points on the map — e.g. the start and end of a planned route. No-op
+	/// on watchOS.
+	public func onMapTap(_ handler: @escaping (Coordinate) -> Void) -> MapKitView {
+		var copy = self
+		copy.onMapTap = handler
 		return copy
 	}
 }
@@ -249,6 +301,8 @@ extension MapKitView {
 				case .boatHull(let color):
 					// Stationary / no heading → point north.
 					drawHull(ctx, centre: centre, direction: direction ?? 0, color: color)
+				case .symbol(let systemName, let color):
+					drawSymbolBadge(ctx, centre: centre, systemName: systemName, color: color)
 				}
 				if let line {
 					// Sit the label a touch closer to the hull (the glyph occupies
@@ -332,6 +386,62 @@ extension MapKitView {
 			ctx.restoreGState()
 		}
 
+		/// A coloured disc with a white ring carrying a white SF Symbol glyph — the
+		/// fixed-object counterpart to the boat hull. Drawn upright (no rotation).
+		private static func drawSymbolBadge(
+			_ ctx: CGContext, centre: CGPoint, systemName: String, color: Color
+		) {
+			let radius: CGFloat = 11
+			ctx.setFillColor(PlatformColor.white.cgColor)
+			ctx.fillEllipse(
+				in: CGRect(
+					x: centre.x - radius - 2, y: centre.y - radius - 2,
+					width: (radius + 2) * 2, height: (radius + 2) * 2))
+			ctx.setFillColor(PlatformColor(color).cgColor)
+			ctx.fillEllipse(
+				in: CGRect(x: centre.x - radius, y: centre.y - radius, width: radius * 2, height: radius * 2))
+			guard let glyph = symbolImage(systemName, pointSize: 13) else { return }
+			let side: CGFloat = 15
+			let aspect = CGFloat(glyph.height) / CGFloat(max(glyph.width, 1))
+			let w = side
+			let h = side * aspect
+			let rect = CGRect(x: centre.x - w / 2, y: centre.y - h / 2, width: w, height: h)
+			// The render context is y-down on both platforms, so flip locally to
+			// draw the (y-up) symbol bitmap upright.
+			ctx.saveGState()
+			ctx.translateBy(x: rect.minX, y: rect.maxY)
+			ctx.scaleBy(x: 1, y: -1)
+			ctx.draw(glyph, in: CGRect(x: 0, y: 0, width: rect.width, height: rect.height))
+			ctx.restoreGState()
+		}
+
+		/// Rasterises an SF Symbol, tinted white, to a `CGImage` for compositing on
+		/// the coloured badge. Returns `nil` when the symbol name is unknown.
+		private static func symbolImage(_ name: String, pointSize: CGFloat) -> CGImage? {
+			#if canImport(UIKit)
+				let config = UIImage.SymbolConfiguration(pointSize: pointSize, weight: .black)
+				guard let base = UIImage(systemName: name)?.applyingSymbolConfiguration(config) else { return nil }
+				let tinted = base.withTintColor(.white, renderingMode: .alwaysOriginal)
+				return UIGraphicsImageRenderer(size: tinted.size).image { _ in tinted.draw(at: .zero) }.cgImage
+			#elseif canImport(AppKit)
+				let config = NSImage.SymbolConfiguration(pointSize: pointSize, weight: .black)
+				guard
+					let base = NSImage(systemSymbolName: name, accessibilityDescription: nil)?
+						.withSymbolConfiguration(config)
+				else { return nil }
+				let size = base.size
+				let tinted = NSImage(size: size)
+				tinted.lockFocus()
+				base.draw(at: .zero, from: CGRect(origin: .zero, size: size), operation: .sourceOver, fraction: 1)
+				PlatformColor.white.set()
+				CGRect(origin: .zero, size: size).fill(using: .sourceAtop)
+				tinted.unlockFocus()
+				return tinted.cgImage(forProposedRect: nil, context: nil, hints: nil)
+			#else
+				return nil
+			#endif
+		}
+
 		#if canImport(UIKit)
 			private static func render(size: CGSize, _ draw: (CGContext) -> Void) -> PlatformImage {
 				UIGraphicsImageRenderer(size: size).image { ctx in draw(ctx.cgContext) }
@@ -366,6 +476,8 @@ extension MapKitView {
 			let isInteractive: Bool
 			let zoomSpan: Double
 			let onSelectMarker: ((AnyHashable) -> Void)?
+			let onRegionSettled: ((MapVisibleRegion) -> Void)?
+			let onMapTap: ((Coordinate) -> Void)?
 
 			func makeCoordinator() -> MarkableMapState { MarkableMapState() }
 			func makeNSView(context: Context) -> MKMapView {
@@ -374,6 +486,7 @@ extension MapKitView {
 				// delegate would otherwise be deallocated and custom rendering
 				// (vessel marker, tile overlays) would stop.
 				map.delegate = context.coordinator.mapDelegate
+				context.coordinator.installMapTapIfNeeded(on: map)
 				return map
 			}
 			func updateNSView(_ map: MKMapView, context: Context) {
@@ -382,6 +495,8 @@ extension MapKitView {
 				map.isRotateEnabled = isInteractive
 				map.isPitchEnabled = isInteractive
 				context.coordinator.mapDelegate.onSelect = onSelectMarker
+				context.coordinator.bindRegionSettled(onRegionSettled)
+				context.coordinator.bindMapTap(onMapTap)
 				context.coordinator.apply(
 					markers: markers, tracks: tracks,
 					centerCoordinate: centerCoordinate, recenterToken: recenterToken,
@@ -400,6 +515,8 @@ extension MapKitView {
 			let isInteractive: Bool
 			let zoomSpan: Double
 			let onSelectMarker: ((AnyHashable) -> Void)?
+			let onRegionSettled: ((MapVisibleRegion) -> Void)?
+			let onMapTap: ((Coordinate) -> Void)?
 
 			func makeCoordinator() -> MarkableMapState { MarkableMapState() }
 			func makeUIView(context: Context) -> MKMapView {
@@ -408,6 +525,7 @@ extension MapKitView {
 				// delegate would otherwise be deallocated and custom rendering
 				// (vessel marker, tile overlays) would stop.
 				map.delegate = context.coordinator.mapDelegate
+				context.coordinator.installMapTapIfNeeded(on: map)
 				return map
 			}
 			func updateUIView(_ map: MKMapView, context: Context) {
@@ -419,6 +537,8 @@ extension MapKitView {
 					map.isPitchEnabled = isInteractive
 				#endif
 				context.coordinator.mapDelegate.onSelect = onSelectMarker
+				context.coordinator.bindRegionSettled(onRegionSettled)
+				context.coordinator.bindMapTap(onMapTap)
 				context.coordinator.apply(
 					markers: markers, tracks: tracks,
 					centerCoordinate: centerCoordinate, recenterToken: recenterToken,
@@ -447,6 +567,59 @@ extension MapKitView {
 		private var renderedHeading: Double = 0
 		/// Whether the rotation-tracking callback has been installed.
 		private var observingRegion = false
+		/// Whether the tap recogniser has been attached to the map.
+		private var didInstallMapTap = false
+
+		/// Attaches a single tap recogniser to the map (once), routed to the
+		/// delegate which converts the point and forwards a coordinate.
+		func installMapTapIfNeeded(on map: MKMapView) {
+			guard !didInstallMapTap else { return }
+			didInstallMapTap = true
+			mapDelegate.tappedMap = map
+			#if canImport(UIKit)
+				let recognizer = UITapGestureRecognizer(
+					target: mapDelegate, action: #selector(MapDelegate.handleMapTap(_:)))
+				recognizer.delegate = mapDelegate
+				// Never swallow the touch — MapKit keeps its own pan/selection handling,
+				// and the delegate simply ignores taps when no handler is bound.
+				recognizer.cancelsTouchesInView = false
+				map.addGestureRecognizer(recognizer)
+			#elseif canImport(AppKit)
+				let recognizer = NSClickGestureRecognizer(
+					target: mapDelegate, action: #selector(MapDelegate.handleMapTap(_:)))
+				map.addGestureRecognizer(recognizer)
+			#endif
+		}
+
+		/// Installs (or clears) the public map-tap callback, wrapping the delegate's
+		/// CoreLocation coordinate as a Stheno ``Coordinate``.
+		func bindMapTap(_ handler: ((Coordinate) -> Void)?) {
+			guard let handler else {
+				mapDelegate.onMapTap = nil
+				return
+			}
+			mapDelegate.onMapTap = { coordinate in
+				handler(Coordinate(latitude: coordinate.latitude, longitude: coordinate.longitude))
+			}
+		}
+
+		/// Installs (or clears) the public "region settled" callback, translating the
+		/// map's `MKCoordinateRegion` into a ``MapVisibleRegion`` for the caller.
+		func bindRegionSettled(_ handler: ((MapVisibleRegion) -> Void)?) {
+			guard let handler else {
+				mapDelegate.onRegionSettled = nil
+				return
+			}
+			mapDelegate.onRegionSettled = { map in
+				let region = map.region
+				handler(
+					MapVisibleRegion(
+						center: Coordinate(
+							latitude: region.center.latitude, longitude: region.center.longitude),
+						latitudeDelta: region.span.latitudeDelta,
+						longitudeDelta: region.span.longitudeDelta))
+			}
+		}
 
 		func apply(
 			markers: [MapMarker],
@@ -636,6 +809,13 @@ extension MapKitView {
 					.overlay(HullShape().stroke(.white, lineWidth: 2))
 					.frame(width: 20, height: 30)
 					.rotationEffect(.degrees(direction ?? 0))
+			case .symbol(let systemName, let color):
+				Image(systemName: systemName)
+					.font(.system(size: 11, weight: .black))
+					.foregroundStyle(.white)
+					.padding(5)
+					.background(Circle().fill(color))
+					.overlay(Circle().stroke(.white, lineWidth: 2))
 			}
 		}
 

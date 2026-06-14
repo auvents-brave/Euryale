@@ -2,6 +2,12 @@
 	import MapKit
 	import SwiftUI
 
+	#if canImport(UIKit)
+		import UIKit
+	#elseif canImport(AppKit)
+		import AppKit
+	#endif
+
 	// MARK: - MapDelegate
 
 	/// `MKMapViewDelegate` for ``MapKitView``: renders the cached tile overlays
@@ -17,10 +23,39 @@
 		/// Called with a tapped marker's id, set by the markable representable.
 		var onSelect: ((AnyHashable) -> Void)?
 
+		/// Called with the chart coordinate of a tap on open water (not on a
+		/// marker), set by the markable representable. Used by route planning to
+		/// pick start and end points. `nil` disables tap reporting.
+		var onMapTap: ((CLLocationCoordinate2D) -> Void)?
+
+		/// The map this delegate drives, held weakly so a tap can be converted from
+		/// a view point to a coordinate.
+		weak var tappedMap: MKMapView?
+
+		/// Converts a tap location to a chart coordinate and reports it.
+		#if canImport(UIKit)
+			@objc func handleMapTap(_ recognizer: UITapGestureRecognizer) {
+				guard let onMapTap, let map = tappedMap, recognizer.state == .ended else { return }
+				let point = recognizer.location(in: map)
+				onMapTap(map.convert(point, toCoordinateFrom: map))
+			}
+		#elseif canImport(AppKit)
+			@objc func handleMapTap(_ recognizer: NSClickGestureRecognizer) {
+				guard let onMapTap, let map = tappedMap else { return }
+				let point = recognizer.location(in: map)
+				onMapTap(map.convert(point, toCoordinateFrom: map))
+			}
+		#endif
+
 		/// Called whenever the visible region changes (pan / zoom / **rotate**), set
 		/// by the markable representable so it can keep directional markers aligned
 		/// to the chart when the map is rotated.
 		var onRegionChange: ((MKMapView) -> Void)?
+
+		/// Called once the visible region settles after a gesture (not continuously
+		/// during it), set by the markable representable to surface the on-screen
+		/// bounds to the app — e.g. to draw a large dataset only where it shows.
+		var onRegionSettled: ((MKMapView) -> Void)?
 
 		/// Provides a renderer for tile overlays and styled polylines.
 		/// - Parameters:
@@ -84,6 +119,13 @@
 			onRegionChange?(mapView)
 		}
 
+		/// Reports the settled visible region after a pan / zoom / rotate gesture
+		/// ends, so the app can refilter what it draws without churning on every
+		/// intermediate frame.
+		func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+			onRegionSettled?(mapView)
+		}
+
 		/// Reports a tapped marker, then immediately deselects it so tapping the
 		/// same marker again fires another selection.
 		func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
@@ -93,4 +135,24 @@
 			mapView.deselectAnnotation(view.annotation, animated: false)
 		}
 	}
+
+	#if canImport(UIKit)
+		// Lets the map-tap recognise alongside MapKit's own gestures, but not when
+		// the touch lands on a marker (so tapping a marker selects it rather than
+		// dropping a route point).
+		extension MapDelegate: UIGestureRecognizerDelegate {
+			public func gestureRecognizer(
+				_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch
+			) -> Bool {
+				!(touch.view is MKAnnotationView) && !(touch.view?.superview is MKAnnotationView)
+			}
+
+			public func gestureRecognizer(
+				_ gestureRecognizer: UIGestureRecognizer,
+				shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
+			) -> Bool {
+				true
+			}
+		}
+	#endif
 #endif

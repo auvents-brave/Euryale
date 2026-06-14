@@ -55,6 +55,12 @@ public import SwiftUI
 		/// Called with a marker's id when it is tapped (unused on watchOS; kept
 		/// for API parity). See `onMarkerSelected(_:)`.
 		var onSelectMarker: ((AnyHashable) -> Void)?
+		/// Called when the visible region settles (unused on watchOS; kept for API
+		/// parity). See `onVisibleRegion(_:)`.
+		var onRegionSettled: ((MapVisibleRegion) -> Void)?
+		/// Called with the chart coordinate of a tap on open water. See
+		/// `onMapTap(_:)`.
+		var onMapTap: ((Coordinate) -> Void)?
 
 		/// Whether the one-shot initial centring has already happened.
 		@State private var didInitialCenter = false
@@ -179,6 +185,11 @@ public import SwiftUI
 		var zoomSpan: Double = 0.02
 		/// Called with a marker's id when it is tapped. See `onMarkerSelected(_:)`.
 		var onSelectMarker: ((AnyHashable) -> Void)?
+		/// Called when the visible region settles after a gesture. See `onVisibleRegion(_:)`.
+		var onRegionSettled: ((MapVisibleRegion) -> Void)?
+		/// Called with the chart coordinate of a tap on open water. See
+		/// `onMapTap(_:)`.
+		var onMapTap: ((Coordinate) -> Void)?
 
 		// MARK: Init
 
@@ -234,7 +245,9 @@ public import SwiftUI
 				map: map, markers: markers, tracks: tracks,
 				centerCoordinate: centerCoordinate, recenterToken: recenterToken,
 				continuousFollow: continuousFollow, isInteractive: isInteractive, zoomSpan: zoomSpan,
-				onSelectMarker: onSelectMarker
+				onSelectMarker: onSelectMarker,
+				onRegionSettled: onRegionSettled,
+				onMapTap: onMapTap
 			)
 			.ignoresSafeArea()
 			.accessibilityIdentifier("MapKitView.map")
