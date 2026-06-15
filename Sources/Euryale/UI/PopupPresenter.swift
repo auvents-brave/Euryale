@@ -130,9 +130,13 @@ extension View {
 		backgroundInteraction: Bool = false,
 		@ViewBuilder content: @escaping () -> PopupContent
 	) -> some View {
-		modifier(
-			PopupBoolPresentation(
-				isPresented: isPresented, backgroundInteraction: backgroundInteraction, popupContent: content))
+		#if os(tvOS) || os(watchOS)
+			sheet(isPresented: isPresented) { content() }
+		#else
+			popover(isPresented: isPresented) {
+				popupAdapted(content(), backgroundInteraction: backgroundInteraction)
+			}
+		#endif
 	}
 
 	/// The `item`-driven companion to ``popupPresentation(isPresented:backgroundInteraction:content:)``,
@@ -142,15 +146,20 @@ extension View {
 		backgroundInteraction: Bool = false,
 		@ViewBuilder content: @escaping (Item) -> PopupContent
 	) -> some View {
-		modifier(
-			PopupItemPresentation(
-				item: item, backgroundInteraction: backgroundInteraction, popupContent: content))
+		#if os(tvOS) || os(watchOS)
+			sheet(item: item) { content($0) }
+		#else
+			popover(item: item) { value in
+				popupAdapted(content(value), backgroundInteraction: backgroundInteraction)
+			}
+		#endif
 	}
 }
 
 /// Applies the compact-width sheet behaviour shared by both popup entry points.
+/// Internal (not private) so it can be unit-tested directly.
 @ViewBuilder
-private func popupAdapted(_ content: some View, backgroundInteraction: Bool) -> some View {
+func popupAdapted(_ content: some View, backgroundInteraction: Bool) -> some View {
 	#if os(iOS)
 		content
 			.presentationCompactAdaptation(.sheet)
@@ -160,38 +169,6 @@ private func popupAdapted(_ content: some View, backgroundInteraction: Bool) -> 
 	#else
 		content
 	#endif
-}
-
-private struct PopupBoolPresentation<PopupContent: View>: ViewModifier {
-	@Binding var isPresented: Bool
-	let backgroundInteraction: Bool
-	@ViewBuilder let popupContent: () -> PopupContent
-
-	func body(content: Content) -> some View {
-		#if os(tvOS) || os(watchOS)
-			content.sheet(isPresented: $isPresented) { popupContent() }
-		#else
-			content.popover(isPresented: $isPresented) {
-				popupAdapted(popupContent(), backgroundInteraction: backgroundInteraction)
-			}
-		#endif
-	}
-}
-
-private struct PopupItemPresentation<Item: Identifiable, PopupContent: View>: ViewModifier {
-	@Binding var item: Item?
-	let backgroundInteraction: Bool
-	@ViewBuilder let popupContent: (Item) -> PopupContent
-
-	func body(content: Content) -> some View {
-		#if os(tvOS) || os(watchOS)
-			content.sheet(item: $item) { popupContent($0) }
-		#else
-			content.popover(item: $item) { value in
-				popupAdapted(popupContent(value), backgroundInteraction: backgroundInteraction)
-			}
-		#endif
-	}
 }
 
 // MARK: - Previews
