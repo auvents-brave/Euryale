@@ -72,29 +72,16 @@ public struct PopupPresenter<Trigger: View, PresentedContent: View>: View {
 			.buttonStyle(.card)
 			.focusable(true)
 		#endif
-		.modifier(
-			PopupPresentationModifier(
-				isPresented: $isPresented,
-				popupContent: popupBody
-			)
-		)
+		.popupPresentation(isPresented: $isPresented) {
+			presentedContent()
+				.frame(
+					width: usesConstrainedSize ? regularWidth : nil,
+					height: usesConstrainedSize ? regularHeight : nil
+				)
+		}
 	}
 
 	// MARK: Helpers
-
-	@ViewBuilder
-	private var popupBody: some View {
-		presentedContent()
-			.frame(
-				width: usesConstrainedSize ? regularWidth : nil,
-				height: usesConstrainedSize ? regularHeight : nil
-			)
-			#if os(iOS)
-				.presentationCompactAdaptation(.sheet)
-				.presentationDetents([.medium, .large])
-				.presentationDragIndicator(.visible)
-			#endif
-	}
 
 	private var usesConstrainedSize: Bool {
 		#if os(iOS)
@@ -121,20 +108,87 @@ public struct PopupPresenter<Trigger: View, PresentedContent: View>: View {
 	}
 }
 
-// MARK: - PopupPresentationModifier
+// MARK: - Popup presentation modifier
 
-private struct PopupPresentationModifier<PopupContent: View>: ViewModifier {
+extension View {
+
+	/// Presents `content` as a popover on a pointer device (iPadOS, macOS,
+	/// visionOS) and a half-height, drag-dismissable sheet when the width is
+	/// compact (iPhone); a plain sheet on tvOS and watchOS, which have no popover.
+	///
+	/// This is the presentation ``PopupPresenter`` uses; expose it directly for
+	/// callers whose trigger is not a SwiftUI view — e.g. a tap on a map
+	/// annotation — and so drive the same behaviour from an `item` binding.
+	///
+	/// - Parameters:
+	///   - isPresented: Drives whether the popup is shown.
+	///   - backgroundInteraction: When `true`, the compact sheet lets the content
+	///     behind it stay interactive (so a map under the sheet still pans).
+	///   - content: The popup body.
+	public func popupPresentation<PopupContent: View>(
+		isPresented: Binding<Bool>,
+		backgroundInteraction: Bool = false,
+		@ViewBuilder content: @escaping () -> PopupContent
+	) -> some View {
+		modifier(
+			PopupBoolPresentation(
+				isPresented: isPresented, backgroundInteraction: backgroundInteraction, popupContent: content))
+	}
+
+	/// The `item`-driven companion to ``popupPresentation(isPresented:backgroundInteraction:content:)``,
+	/// for a popup opened by selecting a value rather than tapping a trigger view.
+	public func popupPresentation<Item: Identifiable, PopupContent: View>(
+		item: Binding<Item?>,
+		backgroundInteraction: Bool = false,
+		@ViewBuilder content: @escaping (Item) -> PopupContent
+	) -> some View {
+		modifier(
+			PopupItemPresentation(
+				item: item, backgroundInteraction: backgroundInteraction, popupContent: content))
+	}
+}
+
+/// Applies the compact-width sheet behaviour shared by both popup entry points.
+@ViewBuilder
+private func popupAdapted(_ content: some View, backgroundInteraction: Bool) -> some View {
+	#if os(iOS)
+		content
+			.presentationCompactAdaptation(.sheet)
+			.presentationDetents([.medium, .large])
+			.presentationDragIndicator(.visible)
+			.presentationBackgroundInteraction(backgroundInteraction ? .enabled(upThrough: .medium) : .automatic)
+	#else
+		content
+	#endif
+}
+
+private struct PopupBoolPresentation<PopupContent: View>: ViewModifier {
 	@Binding var isPresented: Bool
-	let popupContent: PopupContent
+	let backgroundInteraction: Bool
+	@ViewBuilder let popupContent: () -> PopupContent
 
 	func body(content: Content) -> some View {
 		#if os(tvOS) || os(watchOS)
-			content.sheet(isPresented: $isPresented) {
-				popupContent
-			}
+			content.sheet(isPresented: $isPresented) { popupContent() }
 		#else
 			content.popover(isPresented: $isPresented) {
-				popupContent
+				popupAdapted(popupContent(), backgroundInteraction: backgroundInteraction)
+			}
+		#endif
+	}
+}
+
+private struct PopupItemPresentation<Item: Identifiable, PopupContent: View>: ViewModifier {
+	@Binding var item: Item?
+	let backgroundInteraction: Bool
+	@ViewBuilder let popupContent: (Item) -> PopupContent
+
+	func body(content: Content) -> some View {
+		#if os(tvOS) || os(watchOS)
+			content.sheet(item: $item) { popupContent($0) }
+		#else
+			content.popover(item: $item) { value in
+				popupAdapted(popupContent(value), backgroundInteraction: backgroundInteraction)
 			}
 		#endif
 	}
