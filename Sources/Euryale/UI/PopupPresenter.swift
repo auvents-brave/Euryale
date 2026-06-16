@@ -141,15 +141,21 @@ extension View {
 
 	/// The `item`-driven companion to ``popupPresentation(isPresented:backgroundInteraction:content:)``,
 	/// for a popup opened by selecting a value rather than tapping a trigger view.
+	///
+	/// - Parameter anchorPoint: Where, within the source view, the popover's arrow
+	///   points (a unit point, `nil` to anchor to the view's bounds). Use it to point
+	///   the popover at the selected element — e.g. a tapped map annotation — rather
+	///   than the whole view. Ignored by the compact sheet.
 	public func popupPresentation<Item: Identifiable, PopupContent: View>(
 		item: Binding<Item?>,
+		anchorPoint: UnitPoint? = nil,
 		backgroundInteraction: Bool = false,
 		@ViewBuilder content: @escaping (Item) -> PopupContent
 	) -> some View {
 		#if os(tvOS) || os(watchOS)
 			sheet(item: item) { content($0) }
 		#else
-			popover(item: item) { value in
+			popover(item: item, attachmentAnchor: anchorPoint.map { .point($0) } ?? .rect(.bounds)) { value in
 				popupAdapted(content(value), backgroundInteraction: backgroundInteraction)
 			}
 		#endif
