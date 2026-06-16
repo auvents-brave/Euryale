@@ -72,6 +72,7 @@
 			if let id = selection, let topic = book.topic(id: id) {
 				ScrollView {
 					Markdown(topic.body)
+						.markdownImageProvider(HelpImageProvider(baseURL: book.baseURL))
 						.textSelection(.enabled)
 						.frame(maxWidth: .infinity, alignment: .leading)
 						.padding()

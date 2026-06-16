@@ -733,8 +733,11 @@ extension MapKitView {
 				guard track.coordinates.count >= 2 else { continue }
 
 				var coords = track.coordinates.map(CLLocationCoordinate2D.init)
-				let halo = MKPolyline(coordinates: &coords, count: coords.count)
-				let core = MKPolyline(coordinates: &coords, count: coords.count)
+				// Geodesic so a leg follows the great circle (matching the router's
+				// great-circle distances) rather than a straight line in the map's
+				// projection.
+				let halo = MKGeodesicPolyline(coordinates: &coords, count: coords.count)
+				let core = MKGeodesicPolyline(coordinates: &coords, count: coords.count)
 				delegate?.trackStyles[ObjectIdentifier(halo)] = (track.style, true)
 				delegate?.trackStyles[ObjectIdentifier(core)] = (track.style, false)
 				overlays[track.id] = (halo, core)
