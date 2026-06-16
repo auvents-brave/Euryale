@@ -31,7 +31,8 @@
 		}
 
 		/// Loads the platform variant (then the plain file) for `url`'s base name.
-		private func resolved(_ url: URL?) -> Image? {
+		/// Internal rather than private so the resolution can be unit-tested.
+		func resolved(_ url: URL?) -> Image? {
 			guard let baseURL, let url else { return nil }
 			let stem = url.deletingPathExtension().lastPathComponent
 			let ext = url.pathExtension
