@@ -20,11 +20,19 @@ public struct HelpBook: Sendable {
 	/// ``search(_:)``.
 	public let allTopics: [HelpTopic]
 
+	/// The resolved localisation directory the book was loaded from, or `nil` for
+	/// an in-memory book. Article images (`images/…`) are resolved against it.
+	public let baseURL: URL?
+
 	/// Creates a help book from an in-memory topic tree.
-	/// - Parameter topics: The top-level topics.
-	public init(topics: [HelpTopic]) {
+	/// - Parameters:
+	///   - topics: The top-level topics.
+	///   - baseURL: The directory article images resolve against. Defaults to
+	///     `nil` (no on-disk assets).
+	public init(topics: [HelpTopic], baseURL: URL? = nil) {
 		self.topics = topics
 		self.allTopics = topics.flatMap(\.flattened)
+		self.baseURL = baseURL
 	}
 
 	/// Returns the topic with the given slug, if present anywhere in the tree.
@@ -74,7 +82,7 @@ public struct HelpBook: Sendable {
 		let data = try Data(contentsOf: manifestURL)
 		let manifest = try JSONDecoder().decode(HelpManifest.self, from: data)
 		let topics = try manifest.topics.map { try $0.resolve(in: localeURL) }
-		return HelpBook(topics: topics)
+		return HelpBook(topics: topics, baseURL: localeURL)
 	}
 
 	/// Picks the localisation subdirectory that best matches the preferred
