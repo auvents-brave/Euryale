@@ -1,6 +1,6 @@
 internal import CoreLocation
 internal import CoreText
-internal import MapKit
+public import MapKit
 public import Stheno
 public import SwiftUI
 
@@ -170,6 +170,27 @@ extension MapKitView {
 	public func tracking(_ tracks: [MapTrack]) -> MapKitView {
 		var copy = self
 		copy.tracks = tracks
+		return copy
+	}
+
+	/// Filters which points of interest the map displays — on every platform,
+	/// including the watchOS map.
+	///
+	/// - Parameter value: ``MapPointsOfInterest/all``, ``MapPointsOfInterest/none``,
+	///   or ``MapPointsOfInterest/including(_:)`` naming the categories to keep.
+	public func pointsOfInterest(_ value: MapPointsOfInterest) -> MapKitView {
+		var copy = self
+		copy.pointOfInterestFilter = value
+		return copy
+	}
+
+	/// Draws a WMS tile layer beneath the map's tile overlays, or removes it when
+	/// `source` is `nil`. Toggling is live. Has no effect on watchOS.
+	///
+	/// - Parameter source: The WMS underlay to show, or `nil` to remove it.
+	public func wmsUnderlay(_ source: WMSTileSource?) -> MapKitView {
+		var copy = self
+		copy.wmsUnderlay = source
 		return copy
 	}
 
@@ -478,6 +499,8 @@ extension MapKitView {
 			let onSelectMarker: ((AnyHashable) -> Void)?
 			let onRegionSettled: ((MapVisibleRegion) -> Void)?
 			let onMapTap: ((Coordinate) -> Void)?
+			let pointOfInterestFilter: MapPointsOfInterest
+			let wmsUnderlay: WMSTileSource?
 
 			func makeCoordinator() -> MarkableMapState { MarkableMapState() }
 			func makeNSView(context: Context) -> MKMapView {
@@ -494,6 +517,8 @@ extension MapKitView {
 				map.isZoomEnabled = isInteractive
 				map.isRotateEnabled = isInteractive
 				map.isPitchEnabled = isInteractive
+				map.pointOfInterestFilter = pointOfInterestFilter.mkFilter
+				context.coordinator.applyWMSUnderlay(wmsUnderlay, on: map)
 				context.coordinator.mapDelegate.onSelect = onSelectMarker
 				context.coordinator.bindRegionSettled(onRegionSettled)
 				context.coordinator.bindMapTap(onMapTap)
@@ -517,6 +542,8 @@ extension MapKitView {
 			let onSelectMarker: ((AnyHashable) -> Void)?
 			let onRegionSettled: ((MapVisibleRegion) -> Void)?
 			let onMapTap: ((Coordinate) -> Void)?
+			let pointOfInterestFilter: MapPointsOfInterest
+			let wmsUnderlay: WMSTileSource?
 
 			func makeCoordinator() -> MarkableMapState { MarkableMapState() }
 			func makeUIView(context: Context) -> MKMapView {
@@ -536,6 +563,8 @@ extension MapKitView {
 					map.isRotateEnabled = isInteractive
 					map.isPitchEnabled = isInteractive
 				#endif
+				map.pointOfInterestFilter = pointOfInterestFilter.mkFilter
+				context.coordinator.applyWMSUnderlay(wmsUnderlay, on: map)
 				context.coordinator.mapDelegate.onSelect = onSelectMarker
 				context.coordinator.bindRegionSettled(onRegionSettled)
 				context.coordinator.bindMapTap(onMapTap)
@@ -569,6 +598,10 @@ extension MapKitView {
 		private var observingRegion = false
 		/// Whether the tap recogniser has been attached to the map.
 		private var didInstallMapTap = false
+		/// The WMS underlay currently applied, kept to detect changes.
+		private var wmsUnderlaySource: WMSTileSource?
+		/// The live WMS underlay overlay, so it can be removed or replaced.
+		private var wmsUnderlayOverlay: MKTileOverlay?
 
 		/// Attaches a single tap recogniser to the map (once), routed to the
 		/// delegate which converts the point and forwards a coordinate.
@@ -618,6 +651,24 @@ extension MapKitView {
 							latitude: region.center.latitude, longitude: region.center.longitude),
 						latitudeDelta: region.span.latitudeDelta,
 						longitudeDelta: region.span.longitudeDelta))
+			}
+		}
+
+		/// Adds, removes or replaces the WMS underlay to match `source`, drawing it
+		/// beneath the tile overlays (and the markers/tracks). Idempotent: a repeat
+		/// call with the same source does nothing.
+		func applyWMSUnderlay(_ source: WMSTileSource?, on map: MKMapView) {
+			guard source != wmsUnderlaySource else { return }
+			wmsUnderlaySource = source
+			if let existing = wmsUnderlayOverlay {
+				map.removeOverlay(existing)
+				wmsUnderlayOverlay = nil
+			}
+			if let source {
+				let overlay = WMSTileOverlay(
+					directory: source.cacheDirectory, getMapBaseURL: source.getMapBaseURL)
+				wmsUnderlayOverlay = overlay
+				map.addOverlay(overlay, level: .aboveRoads)
 			}
 		}
 

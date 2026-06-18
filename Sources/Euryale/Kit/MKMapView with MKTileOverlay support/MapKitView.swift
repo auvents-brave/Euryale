@@ -2,6 +2,61 @@ public import MapKit
 internal import Stheno
 public import SwiftUI
 
+/// Which points of interest a ``MapKitView`` displays.
+///
+/// A cross-platform selection that maps to `MKPointOfInterestFilter` on the
+/// UIKit/AppKit map and to `PointOfInterestCategories` on the watchOS SwiftUI
+/// map, so callers express intent once. See ``MapKitView/pointsOfInterest(_:)``.
+public enum MapPointsOfInterest: Sendable, Equatable {
+	/// Show the map's full set of points of interest.
+	case all
+	/// Hide every point of interest.
+	case none
+	/// Show only the given categories.
+	case including([MKPointOfInterestCategory])
+
+	/// The UIKit/AppKit map filter, or `nil` for the default (all).
+	var mkFilter: MKPointOfInterestFilter? {
+		switch self {
+		case .all: nil
+		case .none: .excludingAll
+		case .including(let categories): MKPointOfInterestFilter(including: categories)
+		}
+	}
+
+	/// The SwiftUI-map representation, used by the watchOS map.
+	@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+	var categories: PointOfInterestCategories {
+		switch self {
+		case .all: .all
+		case .none: .excludingAll
+		case .including(let categories): .including(categories)
+		}
+	}
+}
+
+/// A WMS tile source for a ``MapKitView`` underlay layer.
+///
+/// Tiles are fetched per `z/x/y` as WMS `GetMap` requests — the bounding box is
+/// computed in Web Mercator — and disk-cached like any other overlay. Not shown
+/// on the watchOS map. See ``MapKitView/wmsUnderlay(_:)``.
+public struct WMSTileSource: Sendable, Equatable {
+	/// The cache sub-folder name for this source's tiles.
+	public let cacheDirectory: String
+	/// The full WMS `GetMap` URL, percent-encoded, **without** the trailing
+	/// `&BBOX=` value (the overlay appends one per tile).
+	public let getMapBaseURL: String
+
+	/// Creates a WMS tile source.
+	/// - Parameters:
+	///   - cacheDirectory: The cache sub-folder for the fetched tiles.
+	///   - getMapBaseURL: The WMS `GetMap` URL without the trailing `&BBOX=` value.
+	public init(cacheDirectory: String, getMapBaseURL: String) {
+		self.cacheDirectory = cacheDirectory
+		self.getMapBaseURL = getMapBaseURL
+	}
+}
+
 #if os(watchOS)
 	// MARK: - MapViewModel
 
@@ -61,6 +116,10 @@ public import SwiftUI
 		/// Called with the chart coordinate of a tap on open water. See
 		/// `onMapTap(_:)`.
 		var onMapTap: ((Coordinate) -> Void)?
+		/// Which points of interest the map shows. See `pointsOfInterest(_:)`.
+		var pointOfInterestFilter: MapPointsOfInterest = .all
+		/// An optional WMS underlay (ignored on watchOS). See `wmsUnderlay(_:)`.
+		var wmsUnderlay: WMSTileSource?
 
 		/// Whether the one-shot initial centring has already happened.
 		@State private var didInitialCenter = false
@@ -120,6 +179,7 @@ public import SwiftUI
 				Map(position: $viewModel.position, interactionModes: isInteractive ? .all : []) {
 					markerAndTrackContent
 				}
+				.mapStyle(.standard(pointsOfInterest: pointOfInterestFilter.categories))
 				.ignoresSafeArea()
 				.accessibilityIdentifier("MapKitView.map")
 				// Initial centring, or continuous follow when requested.
@@ -190,6 +250,12 @@ public import SwiftUI
 		/// Called with the chart coordinate of a tap on open water. See
 		/// `onMapTap(_:)`.
 		var onMapTap: ((Coordinate) -> Void)?
+		/// Which points of interest the map shows, applied to the underlying
+		/// `MKMapView`. See `pointsOfInterest(_:)`.
+		var pointOfInterestFilter: MapPointsOfInterest = .all
+		/// An optional WMS underlay drawn beneath the tile overlays. See
+		/// `wmsUnderlay(_:)`.
+		var wmsUnderlay: WMSTileSource?
 
 		// MARK: Init
 
@@ -247,7 +313,9 @@ public import SwiftUI
 				continuousFollow: continuousFollow, isInteractive: isInteractive, zoomSpan: zoomSpan,
 				onSelectMarker: onSelectMarker,
 				onRegionSettled: onRegionSettled,
-				onMapTap: onMapTap
+				onMapTap: onMapTap,
+				pointOfInterestFilter: pointOfInterestFilter,
+				wmsUnderlay: wmsUnderlay
 			)
 			.ignoresSafeArea()
 			.accessibilityIdentifier("MapKitView.map")
