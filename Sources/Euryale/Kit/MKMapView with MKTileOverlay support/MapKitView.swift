@@ -24,15 +24,20 @@ public enum MapPointsOfInterest: Sendable, Equatable {
 		}
 	}
 
-	/// The SwiftUI-map representation, used by the watchOS map.
-	@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-	var categories: PointOfInterestCategories {
-		switch self {
-		case .all: .all
-		case .none: .excludingAll
-		case .including(let categories): .including(categories)
+	#if os(watchOS)
+		// `PointOfInterestCategories` comes from the `_MapKit_SwiftUI` cross-import
+		// overlay, which command-line `swift build` (CodeQL / SonarCloud) does not
+		// load — only the watchOS map consumes it, so it is gated to that platform.
+		/// The SwiftUI-map representation, used by the watchOS map.
+		@available(watchOS 10, *)
+		var categories: PointOfInterestCategories {
+			switch self {
+			case .all: .all
+			case .none: .excludingAll
+			case .including(let categories): .including(categories)
+			}
 		}
-	}
+	#endif
 }
 
 /// How a ``MapKitView`` is oriented — which direction points up. The map's
