@@ -194,6 +194,32 @@ extension MapKitView {
 		return copy
 	}
 
+	/// Locks the map's orientation, using `course` (COG) for course-up and
+	/// `heading` (HDG) for head-up. The user cannot rotate the map by gesture.
+	public func orientation(_ orientation: MapOrientation, course: Double? = nil, heading: Double? = nil)
+		-> MapKitView
+	{
+		var copy = self
+		copy.orientation = orientation
+		copy.courseDegrees = course
+		copy.headingDegrees = heading
+		return copy
+	}
+
+	/// Enables autoscroll: the camera keeps the boat a third up from the bottom,
+	/// auto-zooms (to `destination` if set, otherwise five hours ahead at
+	/// `speedKnots`), and locks scroll / zoom — 3D tilt stays allowed. Disable for
+	/// free panning.
+	public func autoScroll(_ enabled: Bool, speedKnots: Double? = nil, destination: Coordinate? = nil)
+		-> MapKitView
+	{
+		var copy = self
+		copy.autoscroll = enabled
+		copy.speedKnots = speedKnots
+		copy.destination = destination
+		return copy
+	}
+
 	/// Centres the map on `coordinate` once — the first time it becomes
 	/// available (initial positioning) — then recentres only when `recenterToken`
 	/// changes. Between those the map is free to pan; the marker still updates in
@@ -501,6 +527,12 @@ extension MapKitView {
 			let onMapTap: ((Coordinate) -> Void)?
 			let pointOfInterestFilter: MapPointsOfInterest
 			let wmsUnderlay: WMSTileSource?
+			let orientation: MapOrientation
+			let courseDegrees: Double?
+			let headingDegrees: Double?
+			let autoscroll: Bool
+			let speedKnots: Double?
+			let destination: Coordinate?
 
 			func makeCoordinator() -> MarkableMapState { MarkableMapState() }
 			func makeNSView(context: Context) -> MKMapView {
@@ -513,20 +545,23 @@ extension MapKitView {
 				return map
 			}
 			func updateNSView(_ map: MKMapView, context: Context) {
-				map.isScrollEnabled = isInteractive
-				map.isZoomEnabled = isInteractive
-				map.isRotateEnabled = isInteractive
+				// Rotation is locked to the orientation setting; pan/zoom are locked
+				// in autoscroll; 3D tilt stays allowed in both modes.
+				map.isScrollEnabled = isInteractive && !autoscroll
+				map.isZoomEnabled = isInteractive && !autoscroll
+				map.isRotateEnabled = false
 				map.isPitchEnabled = isInteractive
 				map.pointOfInterestFilter = pointOfInterestFilter.mkFilter
 				context.coordinator.applyWMSUnderlay(wmsUnderlay, on: map)
 				context.coordinator.mapDelegate.onSelect = onSelectMarker
 				context.coordinator.bindRegionSettled(onRegionSettled)
 				context.coordinator.bindMapTap(onMapTap)
-				context.coordinator.apply(
-					markers: markers, tracks: tracks,
-					centerCoordinate: centerCoordinate, recenterToken: recenterToken,
-					continuousFollow: continuousFollow, zoomSpan: zoomSpan, on: map
-				)
+				context.coordinator.applyCamera(
+					center: centerCoordinate, recenterToken: recenterToken,
+					continuousFollow: continuousFollow, autoscroll: autoscroll,
+					orientation: orientation, course: courseDegrees, heading: headingDegrees,
+					speedKnots: speedKnots, destination: destination, zoomSpan: zoomSpan, on: map)
+				context.coordinator.apply(markers: markers, tracks: tracks, on: map)
 			}
 		}
 	#else
@@ -544,6 +579,12 @@ extension MapKitView {
 			let onMapTap: ((Coordinate) -> Void)?
 			let pointOfInterestFilter: MapPointsOfInterest
 			let wmsUnderlay: WMSTileSource?
+			let orientation: MapOrientation
+			let courseDegrees: Double?
+			let headingDegrees: Double?
+			let autoscroll: Bool
+			let speedKnots: Double?
+			let destination: Coordinate?
 
 			func makeCoordinator() -> MarkableMapState { MarkableMapState() }
 			func makeUIView(context: Context) -> MKMapView {
@@ -556,11 +597,13 @@ extension MapKitView {
 				return map
 			}
 			func updateUIView(_ map: MKMapView, context: Context) {
-				map.isScrollEnabled = isInteractive
-				map.isZoomEnabled = isInteractive
+				// Rotation is locked to the orientation setting; pan/zoom are locked
+				// in autoscroll; 3D tilt stays allowed in both modes.
+				map.isScrollEnabled = isInteractive && !autoscroll
+				map.isZoomEnabled = isInteractive && !autoscroll
 				#if !os(tvOS)
 					// Rotation and pitch gestures don't exist on tvOS.
-					map.isRotateEnabled = isInteractive
+					map.isRotateEnabled = false
 					map.isPitchEnabled = isInteractive
 				#endif
 				map.pointOfInterestFilter = pointOfInterestFilter.mkFilter
@@ -568,11 +611,12 @@ extension MapKitView {
 				context.coordinator.mapDelegate.onSelect = onSelectMarker
 				context.coordinator.bindRegionSettled(onRegionSettled)
 				context.coordinator.bindMapTap(onMapTap)
-				context.coordinator.apply(
-					markers: markers, tracks: tracks,
-					centerCoordinate: centerCoordinate, recenterToken: recenterToken,
-					continuousFollow: continuousFollow, zoomSpan: zoomSpan, on: map
-				)
+				context.coordinator.applyCamera(
+					center: centerCoordinate, recenterToken: recenterToken,
+					continuousFollow: continuousFollow, autoscroll: autoscroll,
+					orientation: orientation, course: courseDegrees, heading: headingDegrees,
+					speedKnots: speedKnots, destination: destination, zoomSpan: zoomSpan, on: map)
+				context.coordinator.apply(markers: markers, tracks: tracks, on: map)
 			}
 		}
 	#endif
@@ -672,53 +716,122 @@ extension MapKitView {
 			}
 		}
 
-		func apply(
-			markers: [MapMarker],
-			tracks: [MapTrack],
-			centerCoordinate: Coordinate?,
-			recenterToken: AnyHashable,
-			continuousFollow: Bool,
-			zoomSpan: Double,
-			on map: MKMapView
-		) {
+		func apply(markers: [MapMarker], tracks: [MapTrack], on map: MKMapView) {
 			// Install the rotation observer once, so directional markers stay
-			// aligned to the chart when the user rotates the map.
+			// aligned to the chart when the map rotates (course-up, head-up).
 			if !observingRegion {
 				observingRegion = true
 				mapDelegate.onRegionChange = { [weak self] map in self?.headingDidChange(on: map) }
 			}
-			// Centre FIRST, so a marker added below lands inside the visible
-			// region and MapKit creates its annotation view immediately. (When
-			// the marker is added off-screen and the camera never moves again,
-			// its view is never created — which hid the vessel dot.)
-			if let centerCoordinate {
-				let centre = CLLocationCoordinate2D(centerCoordinate)
-				let initialRegion = MKCoordinateRegion(
-					center: centre, span: MKCoordinateSpan(latitudeDelta: zoomSpan, longitudeDelta: zoomSpan)
-				)
-				if continuousFollow {
-					// Stay centred at a fixed zoom on every update. Re-applying the
-					// full region (not just the centre) makes it robust to the
-					// first update landing before the view has a non-zero size
-					// (e.g. inside an AppKit menu), which would otherwise drop the
-					// zoom and leave the map fully zoomed out.
-					map.setRegion(initialRegion, animated: didInitialCenter)
-					didInitialCenter = true
-				} else if !didInitialCenter {
-					// First fix: position the camera once, with a sensible zoom.
-					map.setRegion(initialRegion, animated: false)
-					didInitialCenter = true
-					lastRecenterToken = recenterToken
-				} else if recenterToken != lastRecenterToken {
-					// Explicit "recentre" request: keep the user's zoom.
-					map.setCenter(centre, animated: true)
-					lastRecenterToken = recenterToken
-				}
-				// Otherwise leave the camera alone so the user can pan freely.
-			}
-
 			applyTracks(tracks, on: map)
 			applyMarkers(markers, on: map)
+		}
+
+		// MARK: Camera — orientation, follow and autoscroll
+
+		/// Boat sits a third up from the bottom in autoscroll, so the look-at point
+		/// is ahead of it by this fraction of the forward-visible distance.
+		private static let lookAheadFraction = 0.25
+		/// Maps a forward-visible ground distance to an `MKMapCamera` distance —
+		/// tune on device (it depends on MapKit's field of view and the view size).
+		private static let zoomDistanceFactor = 2.2
+		/// Smallest forward-visible distance, so the view never collapses when stopped.
+		private static let minForwardMetres = 600.0
+
+		/// Drives the camera: the orientation heading always, plus continuous-follow
+		/// or autoscroll centring/zoom. In plain pan mode it only (re)centres on
+		/// demand, leaving the user's pan and zoom alone.
+		func applyCamera(
+			center: Coordinate?, recenterToken: AnyHashable,
+			continuousFollow: Bool, autoscroll: Bool,
+			orientation: MapOrientation, course: Double?, heading: Double?,
+			speedKnots: Double?, destination: Coordinate?,
+			zoomSpan: Double, on map: MKMapView
+		) {
+			guard let center else { return }
+			let boat = CLLocationCoordinate2D(center)
+			let target = Self.resolveHeading(
+				orientation, course: course, heading: heading, fallback: map.camera.heading)
+
+			if autoscroll {
+				let forward = Self.autoscrollForward(
+					boat: boat, destination: destination, speedKnots: speedKnots,
+					current: map.camera.centerCoordinateDistance / Self.zoomDistanceFactor)
+				let bearing = course ?? heading ?? target
+				let lookAt = Self.project(boat, bearing: bearing, metres: forward * Self.lookAheadFraction)
+				// Keep the user's 3D tilt (pitch); lock everything else.
+				let camera = MKMapCamera(
+					lookingAtCenter: lookAt, fromDistance: forward * Self.zoomDistanceFactor,
+					pitch: map.camera.pitch, heading: target)
+				map.setCamera(camera, animated: didInitialCenter)
+				didInitialCenter = true
+				return
+			}
+
+			let recentre: Bool
+			if continuousFollow {
+				recentre = true
+			} else if !didInitialCenter {
+				recentre = true
+				lastRecenterToken = recenterToken
+			} else if recenterToken != lastRecenterToken {
+				recentre = true
+				lastRecenterToken = recenterToken
+			} else {
+				recentre = false
+			}
+			guard recentre || abs(map.camera.heading - target) > 0.5 else { return }
+
+			let lookAt = recentre ? boat : map.camera.centerCoordinate
+			let distance =
+				(continuousFollow || !didInitialCenter)
+				? Self.cameraDistance(forSpan: zoomSpan)
+				: map.camera.centerCoordinateDistance
+			let camera = MKMapCamera(
+				lookingAtCenter: lookAt, fromDistance: distance, pitch: map.camera.pitch, heading: target)
+			map.setCamera(camera, animated: didInitialCenter)
+			didInitialCenter = true
+		}
+
+		private static func resolveHeading(
+			_ orientation: MapOrientation, course: Double?, heading: Double?, fallback: Double
+		) -> Double {
+			switch orientation {
+			case .northUp: return 0
+			case .headUp: return heading ?? course ?? fallback
+			case .courseUp: return course ?? heading ?? fallback
+			}
+		}
+
+		private static func autoscrollForward(
+			boat: CLLocationCoordinate2D, destination: Coordinate?, speedKnots: Double?, current: Double
+		) -> Double {
+			if let destination {
+				let metres = CLLocation(latitude: boat.latitude, longitude: boat.longitude)
+					.distance(from: CLLocation(latitude: destination.latitude, longitude: destination.longitude))
+				return max(minForwardMetres, metres * 1.15)  // a little past the waypoint
+			}
+			if let speedKnots, speedKnots > 0.3 {
+				return max(minForwardMetres, speedKnots * 1852.0 * 5.0)  // five hours ahead
+			}
+			return max(minForwardMetres, current)
+		}
+
+		private static func cameraDistance(forSpan span: Double) -> Double {
+			max(minForwardMetres, span * 111_320.0 * zoomDistanceFactor)
+		}
+
+		/// The point `metres` ahead of `coord` along `bearing` (great-circle).
+		private static func project(
+			_ coord: CLLocationCoordinate2D, bearing: Double, metres: Double
+		) -> CLLocationCoordinate2D {
+			let angular = metres / 6_371_000.0
+			let theta = bearing * .pi / 180
+			let phi1 = coord.latitude * .pi / 180
+			let lambda1 = coord.longitude * .pi / 180
+			let phi2 = asin(sin(phi1) * cos(angular) + cos(phi1) * sin(angular) * cos(theta))
+			let lambda2 = lambda1 + atan2(sin(theta) * sin(angular) * cos(phi1), cos(angular) - sin(phi1) * sin(phi2))
+			return CLLocationCoordinate2D(latitude: phi2 * 180 / .pi, longitude: lambda2 * 180 / .pi)
 		}
 
 		/// Re-renders the directional markers when the map's rotation changes, so a

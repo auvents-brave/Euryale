@@ -35,6 +35,17 @@ public enum MapPointsOfInterest: Sendable, Equatable {
 	}
 }
 
+/// How a ``MapKitView`` is oriented — which direction points up. The map's
+/// rotation is locked to this; the user cannot rotate it by gesture.
+public enum MapOrientation: Sendable, Equatable {
+	/// North at the top (the default).
+	case northUp
+	/// The boat's compass heading at the top.
+	case headUp
+	/// The boat's course over ground at the top.
+	case courseUp
+}
+
 /// A WMS tile source for a ``MapKitView`` underlay layer.
 ///
 /// Tiles are fetched per `z/x/y` as WMS `GetMap` requests — the bounding box is
@@ -120,6 +131,13 @@ public struct WMSTileSource: Sendable, Equatable {
 		var pointOfInterestFilter: MapPointsOfInterest = .all
 		/// An optional WMS underlay (ignored on watchOS). See `wmsUnderlay(_:)`.
 		var wmsUnderlay: WMSTileSource?
+		// Camera controls — ignored on watchOS; kept for API parity.
+		var orientation: MapOrientation = .northUp
+		var courseDegrees: Double?
+		var headingDegrees: Double?
+		var autoscroll = false
+		var speedKnots: Double?
+		var destination: Coordinate?
 
 		/// Whether the one-shot initial centring has already happened.
 		@State private var didInitialCenter = false
@@ -256,6 +274,19 @@ public struct WMSTileSource: Sendable, Equatable {
 		/// An optional WMS underlay drawn beneath the tile overlays. See
 		/// `wmsUnderlay(_:)`.
 		var wmsUnderlay: WMSTileSource?
+		/// Which way is up — the map's rotation is locked to this. See `orientation(_:course:heading:)`.
+		var orientation: MapOrientation = .northUp
+		/// Course over ground (degrees), driving course-up and the autoscroll offset.
+		var courseDegrees: Double?
+		/// Compass heading (degrees), driving head-up.
+		var headingDegrees: Double?
+		/// When `true`, the camera follows the boat (kept a third up from the
+		/// bottom), auto-zooms, and locks scroll/zoom. See `autoScroll(_:speedKnots:destination:)`.
+		var autoscroll = false
+		/// Speed over ground (knots), for the speed-based autoscroll zoom.
+		var speedKnots: Double?
+		/// The active destination / next waypoint, for the autoscroll zoom.
+		var destination: Coordinate?
 
 		// MARK: Init
 
@@ -315,7 +346,13 @@ public struct WMSTileSource: Sendable, Equatable {
 				onRegionSettled: onRegionSettled,
 				onMapTap: onMapTap,
 				pointOfInterestFilter: pointOfInterestFilter,
-				wmsUnderlay: wmsUnderlay
+				wmsUnderlay: wmsUnderlay,
+				orientation: orientation,
+				courseDegrees: courseDegrees,
+				headingDegrees: headingDegrees,
+				autoscroll: autoscroll,
+				speedKnots: speedKnots,
+				destination: destination
 			)
 			.ignoresSafeArea()
 			.accessibilityIdentifier("MapKitView.map")
