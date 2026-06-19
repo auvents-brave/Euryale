@@ -2,6 +2,119 @@ public import MapKit
 internal import Stheno
 public import SwiftUI
 
+/// Which points of interest a ``MapKitView`` displays.
+///
+/// A cross-platform selection that maps to `MKPointOfInterestFilter` on the
+/// UIKit/AppKit map and to `PointOfInterestCategories` on the watchOS SwiftUI
+/// map, so callers express intent once. See ``MapKitView/pointsOfInterest(_:)``.
+public enum MapPointsOfInterest: Sendable, Equatable {
+	/// Show the map's full set of points of interest.
+	case all
+	/// Hide every point of interest.
+	case none
+	/// Show only the given categories.
+	case including([MKPointOfInterestCategory])
+
+	/// The UIKit/AppKit map filter, or `nil` for the default (all).
+	var mkFilter: MKPointOfInterestFilter? {
+		switch self {
+		case .all: nil
+		case .none: .excludingAll
+		case .including(let categories): MKPointOfInterestFilter(including: categories)
+		}
+	}
+
+	#if os(watchOS)
+		// `PointOfInterestCategories` comes from the `_MapKit_SwiftUI` cross-import
+		// overlay, which command-line `swift build` (CodeQL / SonarCloud) does not
+		// load — only the watchOS map consumes it, so it is gated to that platform.
+		/// The SwiftUI-map representation, used by the watchOS map.
+		@available(watchOS 10, *)
+		var categories: PointOfInterestCategories {
+			switch self {
+			case .all: .all
+			case .none: .excludingAll
+			case .including(let categories): .including(categories)
+			}
+		}
+	#endif
+}
+
+/// How a ``MapKitView`` is oriented — which direction points up. The map's
+/// rotation is locked to this; the user cannot rotate it by gesture.
+public enum MapOrientation: Sendable, Equatable {
+	/// North at the top (the default).
+	case northUp
+	/// The boat's compass heading at the top.
+	case headUp
+	/// The boat's course over ground at the top.
+	case courseUp
+}
+
+/// A WMS tile source for a ``MapKitView`` underlay layer.
+///
+/// Tiles are fetched per `z/x/y` as WMS `GetMap` requests — the bounding box is
+/// computed in Web Mercator — and disk-cached like any other overlay. Not shown
+/// on the watchOS map. See ``MapKitView/wmsUnderlay(_:)``.
+public struct WMSTileSource: Sendable, Equatable {
+	/// The cache sub-folder name for this source's tiles.
+	public let cacheDirectory: String
+	/// The full WMS `GetMap` URL, percent-encoded, **without** the trailing
+	/// `&BBOX=` value (the overlay appends one per tile).
+	public let getMapBaseURL: String
+
+	/// Creates a WMS tile source.
+	/// - Parameters:
+	///   - cacheDirectory: The cache sub-folder for the fetched tiles.
+	///   - getMapBaseURL: The WMS `GetMap` URL without the trailing `&BBOX=` value.
+	public init(cacheDirectory: String, getMapBaseURL: String) {
+		self.cacheDirectory = cacheDirectory
+		self.getMapBaseURL = getMapBaseURL
+	}
+}
+
+/// The values a ``MapKitView`` carries from its view modifiers. Held by both
+/// platform variants of the view (and its representable) so the field list is
+/// declared once instead of repeated per platform.
+struct MapViewConfiguration {
+	/// Position markers to draw (see `marking(_:)`).
+	var markers: [MapMarker] = []
+	/// Styled polylines to draw (see `tracking(_:)`).
+	var tracks: [MapTrack] = []
+	/// The coordinate for initial centring / recentring (see `centering(on:recenterToken:)`).
+	var centerCoordinate: Coordinate?
+	/// Changing this token recentres the map on ``centerCoordinate``.
+	var recenterToken: AnyHashable = 0
+	/// When `true`, the map stays continuously centred on ``centerCoordinate`` (see `following(_:)`).
+	var continuousFollow = false
+	/// Whether the user can interact with the map (see `interactive(_:)`).
+	var isInteractive = true
+	/// Latitude/longitude span used when (re)centring (see `following(_:span:)`).
+	var zoomSpan: Double = 0.02
+	/// Called with a marker's id when it is tapped. See `onMarkerSelected(_:)`.
+	var onSelectMarker: ((AnyHashable) -> Void)?
+	/// Called when the visible region settles after a gesture. See `onVisibleRegion(_:)`.
+	var onRegionSettled: ((MapVisibleRegion) -> Void)?
+	/// Called with the chart coordinate of a tap on open water. See `onMapTap(_:)`.
+	var onMapTap: ((Coordinate) -> Void)?
+	/// Which points of interest the map shows. See `pointsOfInterest(_:)`.
+	var pointOfInterestFilter: MapPointsOfInterest = .all
+	/// An optional WMS underlay drawn beneath the tile overlays. See `wmsUnderlay(_:)`.
+	var wmsUnderlay: WMSTileSource?
+	/// Which way is up — the map's rotation is locked to this. See `orientation(_:course:heading:)`.
+	var orientation: MapOrientation = .northUp
+	/// Course over ground (degrees), driving course-up and the autoscroll offset.
+	var courseDegrees: Double?
+	/// Compass heading (degrees), driving head-up.
+	var headingDegrees: Double?
+	/// When `true`, the camera follows the boat, auto-zooms and locks scroll/zoom. See `autoScroll(_:speedKnots:destination:)`.
+	var autoscroll = false
+	/// Speed over ground (knots), for the speed-based autoscroll zoom.
+	var speedKnots: Double?
+	/// The active destination / next waypoint, for the autoscroll zoom.
+	var destination: Coordinate?
+}
+
 #if os(watchOS)
 	// MARK: - MapViewModel
 
@@ -38,29 +151,8 @@ public import SwiftUI
 
 		@State var viewModel: MapViewModel
 
-		/// Position markers to draw (see `marking(_:)`).
-		var markers: [MapMarker] = []
-		/// Styled polylines to draw (see `tracking(_:)`).
-		var tracks: [MapTrack] = []
-		/// The coordinate for initial centring / recentring (see `centering(on:recenterToken:)`).
-		var centerCoordinate: Coordinate?
-		/// Changing this token recentres the map on ``centerCoordinate``.
-		var recenterToken: AnyHashable = 0
-		/// When `true`, the map stays continuously centred on ``centerCoordinate`` (see `following(_:)`).
-		var continuousFollow = false
-		/// Whether the user can interact with the map (see `interactive(_:)`).
-		var isInteractive = true
-		/// Latitude/longitude span used when (re)centring (see `following(_:span:)`).
-		var zoomSpan: Double = 0.02
-		/// Called with a marker's id when it is tapped (unused on watchOS; kept
-		/// for API parity). See `onMarkerSelected(_:)`.
-		var onSelectMarker: ((AnyHashable) -> Void)?
-		/// Called when the visible region settles (unused on watchOS; kept for API
-		/// parity). See `onVisibleRegion(_:)`.
-		var onRegionSettled: ((MapVisibleRegion) -> Void)?
-		/// Called with the chart coordinate of a tap on open water. See
-		/// `onMapTap(_:)`.
-		var onMapTap: ((Coordinate) -> Void)?
+		/// Everything this view carries from its modifiers.
+		var config = MapViewConfiguration()
 
 		/// Whether the one-shot initial centring has already happened.
 		@State private var didInitialCenter = false
@@ -117,33 +209,34 @@ public import SwiftUI
 
 		public var body: some View {
 			if #available(watchOS 12, *) {
-				Map(position: $viewModel.position, interactionModes: isInteractive ? .all : []) {
+				Map(position: $viewModel.position, interactionModes: config.isInteractive ? .all : []) {
 					markerAndTrackContent
 				}
+				.mapStyle(.standard(pointsOfInterest: config.pointOfInterestFilter.categories))
 				.ignoresSafeArea()
 				.accessibilityIdentifier("MapKitView.map")
 				// Initial centring, or continuous follow when requested.
-				.onChange(of: centerCoordinate, initial: true) { _, newValue in
+				.onChange(of: config.centerCoordinate, initial: true) { _, newValue in
 					guard let newValue else { return }
-					if continuousFollow {
+					if config.continuousFollow {
 						viewModel.setRegion(
 							MKCoordinateRegion(
 								center: CLLocationCoordinate2D(newValue),
-								span: MKCoordinateSpan(latitudeDelta: zoomSpan, longitudeDelta: zoomSpan)
+								span: MKCoordinateSpan(latitudeDelta: config.zoomSpan, longitudeDelta: config.zoomSpan)
 							))
 						didInitialCenter = true
 					} else if !didInitialCenter {
 						viewModel.setRegion(
 							MKCoordinateRegion(
 								center: CLLocationCoordinate2D(newValue),
-								span: MKCoordinateSpan(latitudeDelta: zoomSpan, longitudeDelta: zoomSpan)
+								span: MKCoordinateSpan(latitudeDelta: config.zoomSpan, longitudeDelta: config.zoomSpan)
 							))
 						didInitialCenter = true
 					}
 				}
 				// Explicit recentre request (keeps the current zoom).
-				.onChange(of: recenterToken) { _, _ in
-					guard let centerCoordinate else { return }
+				.onChange(of: config.recenterToken) { _, _ in
+					guard let centerCoordinate = config.centerCoordinate else { return }
 					viewModel.setRegion(
 						MKCoordinateRegion(
 							center: CLLocationCoordinate2D(centerCoordinate),
@@ -169,27 +262,8 @@ public import SwiftUI
 		/// The underlying MKMapView instance displayed by this view.
 		let map = MKMapView()
 
-		/// Position markers to draw (see `marking(_:)`).
-		var markers: [MapMarker] = []
-		/// Styled polylines to draw (see `tracking(_:)`).
-		var tracks: [MapTrack] = []
-		/// The coordinate for initial centring / recentring (see `centering(on:recenterToken:)`).
-		var centerCoordinate: Coordinate?
-		/// Changing this token recentres the map on ``centerCoordinate``.
-		var recenterToken: AnyHashable = 0
-		/// When `true`, the map stays continuously centred on ``centerCoordinate`` (see `following(_:)`).
-		var continuousFollow = false
-		/// Whether the user can scroll / zoom / rotate the map (see `interactive(_:)`).
-		var isInteractive = true
-		/// Latitude/longitude span used when (re)centring (see `following(_:span:)`).
-		var zoomSpan: Double = 0.02
-		/// Called with a marker's id when it is tapped. See `onMarkerSelected(_:)`.
-		var onSelectMarker: ((AnyHashable) -> Void)?
-		/// Called when the visible region settles after a gesture. See `onVisibleRegion(_:)`.
-		var onRegionSettled: ((MapVisibleRegion) -> Void)?
-		/// Called with the chart coordinate of a tap on open water. See
-		/// `onMapTap(_:)`.
-		var onMapTap: ((Coordinate) -> Void)?
+		/// Everything this view carries from its modifiers.
+		var config = MapViewConfiguration()
 
 		// MARK: Init
 
@@ -241,14 +315,7 @@ public import SwiftUI
 		/// The SwiftUI view that wraps the MKMapView (with its tile overlays) and
 		/// applies the markers, tracks and follow target.
 		public var body: some View {
-			MarkableMapRepresentable(
-				map: map, markers: markers, tracks: tracks,
-				centerCoordinate: centerCoordinate, recenterToken: recenterToken,
-				continuousFollow: continuousFollow, isInteractive: isInteractive, zoomSpan: zoomSpan,
-				onSelectMarker: onSelectMarker,
-				onRegionSettled: onRegionSettled,
-				onMapTap: onMapTap
-			)
+			MarkableMapRepresentable(map: map, config: config)
 			.ignoresSafeArea()
 			.accessibilityIdentifier("MapKitView.map")
 		}
