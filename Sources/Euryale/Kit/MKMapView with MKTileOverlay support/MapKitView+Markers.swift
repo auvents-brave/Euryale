@@ -275,6 +275,16 @@ extension MapKitView {
 		copy.config.onMapTap = handler
 		return copy
 	}
+
+	/// Reports the chart coordinate of a long-press (iOS / iPadOS) or a secondary
+	/// (right) click (macOS) on open water — for raising a context menu at that
+	/// point. A press on a marker is ignored (it selects the marker). No-op on
+	/// watchOS / tvOS.
+	public func onMapLongPress(_ handler: @escaping (Coordinate) -> Void) -> MapKitView {
+		var copy = self
+		copy.config.onMapLongPress = handler
+		return copy
+	}
 }
 
 // MARK: - Marker drawing (MapKit platforms)
@@ -569,6 +579,7 @@ extension MapKitView {
 			coordinator.mapDelegate.onSelect = config.onSelectMarker
 			coordinator.bindRegionSettled(config.onRegionSettled)
 			coordinator.bindMapTap(config.onMapTap)
+			coordinator.bindMapLongPress(config.onMapLongPress)
 			coordinator.applyCamera(
 				center: config.centerCoordinate, recenterToken: config.recenterToken,
 				continuousFollow: config.continuousFollow, autoscroll: config.autoscroll,
@@ -618,10 +629,21 @@ extension MapKitView {
 				// and the delegate simply ignores taps when no handler is bound.
 				recognizer.cancelsTouchesInView = false
 				map.addGestureRecognizer(recognizer)
+				// A long-press (held finger) for the context menu, alongside the tap.
+				let longPress = UILongPressGestureRecognizer(
+					target: mapDelegate, action: #selector(MapDelegate.handleMapLongPress(_:)))
+				longPress.delegate = mapDelegate
+				longPress.cancelsTouchesInView = false
+				map.addGestureRecognizer(longPress)
 			#elseif canImport(AppKit)
 				let recognizer = NSClickGestureRecognizer(
 					target: mapDelegate, action: #selector(MapDelegate.handleMapTap(_:)))
 				map.addGestureRecognizer(recognizer)
+				// A secondary (right) click for the context menu.
+				let rightClick = NSClickGestureRecognizer(
+					target: mapDelegate, action: #selector(MapDelegate.handleMapLongPress(_:)))
+				rightClick.buttonMask = 0x2
+				map.addGestureRecognizer(rightClick)
 			#endif
 		}
 
@@ -633,6 +655,18 @@ extension MapKitView {
 				return
 			}
 			mapDelegate.onMapTap = { coordinate in
+				handler(Coordinate(latitude: coordinate.latitude, longitude: coordinate.longitude))
+			}
+		}
+
+		/// Installs (or clears) the public map-long-press callback, wrapping the
+		/// delegate's CoreLocation coordinate as a Stheno ``Coordinate``.
+		func bindMapLongPress(_ handler: ((Coordinate) -> Void)?) {
+			guard let handler else {
+				mapDelegate.onMapLongPress = nil
+				return
+			}
+			mapDelegate.onMapLongPress = { coordinate in
 				handler(Coordinate(latitude: coordinate.latitude, longitude: coordinate.longitude))
 			}
 		}

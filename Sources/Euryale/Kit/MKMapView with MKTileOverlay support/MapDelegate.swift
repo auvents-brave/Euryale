@@ -28,6 +28,11 @@
 		/// pick start and end points. `nil` disables tap reporting.
 		var onMapTap: ((CLLocationCoordinate2D) -> Void)?
 
+		/// Called with the chart coordinate of a long-press (iOS / iPadOS) or a
+		/// secondary (right) click (macOS) on open water — for raising a context
+		/// menu at that point. `nil` disables it.
+		var onMapLongPress: ((CLLocationCoordinate2D) -> Void)?
+
 		/// The map this delegate drives, held weakly so a tap can be converted from
 		/// a view point to a coordinate.
 		weak var tappedMap: MKMapView?
@@ -39,11 +44,25 @@
 				let point = recognizer.location(in: map)
 				onMapTap(map.convert(point, toCoordinateFrom: map))
 			}
+
+			/// Reports the start point of a long-press as a chart coordinate.
+			@objc func handleMapLongPress(_ recognizer: UILongPressGestureRecognizer) {
+				guard let onMapLongPress, let map = tappedMap, recognizer.state == .began else { return }
+				let point = recognizer.location(in: map)
+				onMapLongPress(map.convert(point, toCoordinateFrom: map))
+			}
 		#elseif canImport(AppKit)
 			@objc func handleMapTap(_ recognizer: NSClickGestureRecognizer) {
 				guard let onMapTap, let map = tappedMap else { return }
 				let point = recognizer.location(in: map)
 				onMapTap(map.convert(point, toCoordinateFrom: map))
+			}
+
+			/// Reports a secondary (right) click as a chart coordinate.
+			@objc func handleMapLongPress(_ recognizer: NSClickGestureRecognizer) {
+				guard let onMapLongPress, let map = tappedMap else { return }
+				let point = recognizer.location(in: map)
+				onMapLongPress(map.convert(point, toCoordinateFrom: map))
 			}
 		#endif
 
