@@ -97,6 +97,9 @@ struct MapViewConfiguration {
 	var onRegionSettled: ((MapVisibleRegion) -> Void)?
 	/// Called with the chart coordinate of a tap on open water. See `onMapTap(_:)`.
 	var onMapTap: ((Coordinate) -> Void)?
+	/// Called with the chart coordinate of a long-press / right-click on open
+	/// water — for a context menu. See `onMapLongPress(_:)`.
+	var onMapLongPress: ((Coordinate) -> Void)?
 	/// Which points of interest the map shows. See `pointsOfInterest(_:)`.
 	var pointOfInterestFilter: MapPointsOfInterest = .all
 	/// An optional WMS underlay drawn beneath the tile overlays. See `wmsUnderlay(_:)`.
@@ -316,8 +319,8 @@ struct MapViewConfiguration {
 		/// applies the markers, tracks and follow target.
 		public var body: some View {
 			MarkableMapRepresentable(map: map, config: config)
-			.ignoresSafeArea()
-			.accessibilityIdentifier("MapKitView.map")
+				.ignoresSafeArea()
+				.accessibilityIdentifier("MapKitView.map")
 		}
 	}
 #endif
