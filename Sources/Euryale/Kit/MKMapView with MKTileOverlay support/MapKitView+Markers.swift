@@ -30,6 +30,11 @@ public enum MapPositionStyle: Sendable {
 	/// non-vessel objects such as aids to navigation, base stations, aircraft or
 	/// chart marks. Always drawn upright (direction is ignored).
 	case symbol(systemName: String, color: Color)
+	/// An image-asset glyph (e.g. an official chart symbol) loaded from the host
+	/// app's asset catalog by `name`, drawn as-is — or tinted with `tint` when set
+	/// (for shapes whose colour the caller supplies, such as lateral buoys). Drawn
+	/// upright (direction is ignored). Falls back to a dot when the asset is missing.
+	case image(name: String, tint: Color?)
 }
 
 // MARK: - MapTrackStyle
@@ -360,6 +365,8 @@ extension MapKitView {
 					drawHull(ctx, centre: centre, direction: direction ?? 0, color: color)
 				case .symbol(let systemName, let color):
 					drawSymbolBadge(ctx, centre: centre, systemName: systemName, color: color)
+				case .image(let name, let tint):
+					drawChartSymbol(ctx, centre: centre, name: name, tint: tint)
 				}
 				if let line {
 					// Sit the label a touch closer to the hull (the glyph occupies
@@ -470,6 +477,60 @@ extension MapKitView {
 			ctx.scaleBy(x: 1, y: -1)
 			ctx.draw(glyph, in: CGRect(x: 0, y: 0, width: rect.width, height: rect.height))
 			ctx.restoreGState()
+		}
+
+		/// Draws an image-asset chart symbol centred on the glyph box, scaled to fit.
+		/// When `tint` is set the asset is treated as a template and recoloured (for
+		/// shapes whose colour the caller supplies, e.g. lateral buoys); otherwise the
+		/// asset's own colours are kept. Falls back to a plain dot when the asset is
+		/// missing, so an unknown name never leaves the mark invisible.
+		private static func drawChartSymbol(
+			_ ctx: CGContext, centre: CGPoint, name: String, tint: Color?
+		) {
+			guard let glyph = chartAssetImage(name, tint: tint) else {
+				drawDot(ctx, centre: centre, color: tint ?? .gray)
+				return
+			}
+			let side: CGFloat = 34
+			let aspect = CGFloat(glyph.height) / CGFloat(max(glyph.width, 1))
+			let w = side
+			let h = side * aspect
+			let rect = CGRect(x: centre.x - w / 2, y: centre.y - h / 2, width: w, height: h)
+			// The render context is y-down on both platforms, so flip locally to
+			// draw the (y-up) symbol bitmap upright.
+			ctx.saveGState()
+			ctx.translateBy(x: rect.minX, y: rect.maxY)
+			ctx.scaleBy(x: 1, y: -1)
+			ctx.draw(glyph, in: CGRect(x: 0, y: 0, width: rect.width, height: rect.height))
+			ctx.restoreGState()
+		}
+
+		/// Loads a named image asset from the host app's main bundle as a `CGImage`,
+		/// optionally tinted. Returns `nil` when the asset is unknown.
+		private static func chartAssetImage(_ name: String, tint: Color?) -> CGImage? {
+			#if canImport(UIKit)
+				guard var base = UIImage(named: name) else { return nil }
+				if let tint {
+					base = base.withTintColor(PlatformColor(tint), renderingMode: .alwaysTemplate)
+				}
+				return UIGraphicsImageRenderer(size: base.size).image { _ in base.draw(at: .zero) }.cgImage
+			#elseif canImport(AppKit)
+				guard let base = NSImage(named: name) else { return nil }
+				let size = base.size
+				guard size.width > 0, size.height > 0 else { return nil }
+				if let tint {
+					let tinted = NSImage(size: size)
+					tinted.lockFocus()
+					base.draw(at: .zero, from: CGRect(origin: .zero, size: size), operation: .sourceOver, fraction: 1)
+					PlatformColor(tint).set()
+					CGRect(origin: .zero, size: size).fill(using: .sourceAtop)
+					tinted.unlockFocus()
+					return tinted.cgImage(forProposedRect: nil, context: nil, hints: nil)
+				}
+				return base.cgImage(forProposedRect: nil, context: nil, hints: nil)
+			#else
+				return nil
+			#endif
 		}
 
 		/// Rasterises an SF Symbol, tinted white, to a `CGImage` for compositing on
@@ -974,6 +1035,27 @@ extension MapKitView {
 					.padding(5)
 					.background(Circle().fill(color))
 					.overlay(Circle().stroke(.white, lineWidth: 2))
+			case .image(let name, let tint):
+				chartImage(name: name, tint: tint)
+			}
+		}
+
+		/// The image-asset glyph, tinted when a colour is supplied (the shared buoy
+		/// shapes), else drawn in its own colours; falls back to a dot when missing.
+		@ViewBuilder
+		private func chartImage(name: String, tint: Color?) -> some View {
+			if let image = PlatformImage(named: name) {
+				if let tint {
+					Image(uiImage: image)
+						.renderingMode(.template)
+						.resizable().scaledToFit().frame(width: 28, height: 28)
+						.foregroundStyle(tint)
+				} else {
+					Image(uiImage: image)
+						.resizable().scaledToFit().frame(width: 28, height: 28)
+				}
+			} else {
+				dot(tint ?? .gray)
 			}
 		}
 
