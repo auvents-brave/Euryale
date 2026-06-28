@@ -73,6 +73,37 @@ public struct WMSTileSource: Sendable, Equatable {
 	}
 }
 
+/// A plain XYZ ("slippy map") tile source used as the map's **base** layer,
+/// replacing Apple's base map where its tiles cover — e.g. OpenStreetMap.
+///
+/// Unlike ``WMSTileSource`` (a transparent underlay) this is opaque and drawn at
+/// the very bottom with `canReplaceMapContent`, so Apple's own base is hidden.
+/// Tiles are disk-cached like any other overlay. Not shown on the watchOS map.
+/// See ``MapKitView/baseTileSource(_:)``.
+///
+/// - Important: When pointing this at a community tile server such as
+///   `tile.openstreetmap.org`, honour that server's tile-usage policy and show
+///   the required attribution — those tiles are not licensed for heavy app use.
+public struct MapTileSource: Sendable, Equatable {
+	/// The cache sub-folder name for this source's tiles.
+	public let cacheDirectory: String
+	/// The slippy-map URL template, with `{z}`/`{x}`/`{y}` placeholders.
+	public let urlTemplate: String
+	/// An optional App Group whose shared container caches the tiles.
+	public let appGroup: String?
+
+	/// Creates a base tile source.
+	/// - Parameters:
+	///   - cacheDirectory: The cache sub-folder for the fetched tiles.
+	///   - urlTemplate: The `{z}/{x}/{y}` tile URL template.
+	///   - appGroup: An optional App Group identifier for a shared tile cache.
+	public init(cacheDirectory: String, urlTemplate: String, appGroup: String? = nil) {
+		self.cacheDirectory = cacheDirectory
+		self.urlTemplate = urlTemplate
+		self.appGroup = appGroup
+	}
+}
+
 /// The values a ``MapKitView`` carries from its view modifiers. Held by both
 /// platform variants of the view (and its representable) so the field list is
 /// declared once instead of repeated per platform.
@@ -104,6 +135,9 @@ struct MapViewConfiguration {
 	var pointOfInterestFilter: MapPointsOfInterest = .all
 	/// An optional WMS underlay drawn beneath the tile overlays. See `wmsUnderlay(_:)`.
 	var wmsUnderlay: WMSTileSource?
+	/// An optional slippy-map base layer (e.g. OpenStreetMap) replacing Apple's
+	/// base map; `nil` keeps Apple Maps. See `baseTileSource(_:)`.
+	var baseTileSource: MapTileSource?
 	/// Which way is up — the map's rotation is locked to this. See `orientation(_:course:heading:)`.
 	var orientation: MapOrientation = .northUp
 	/// Course over ground (degrees), driving course-up and the autoscroll offset.

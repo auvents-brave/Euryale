@@ -199,6 +199,17 @@ extension MapKitView {
 		return copy
 	}
 
+	/// Replaces Apple's base map with a slippy-map tile layer (e.g. OpenStreetMap)
+	/// drawn at the very bottom; `nil` restores Apple Maps. Toggling is live. Has
+	/// no effect on watchOS.
+	///
+	/// - Parameter source: The base tile source to show, or `nil` for Apple Maps.
+	public func baseTileSource(_ source: MapTileSource?) -> MapKitView {
+		var copy = self
+		copy.config.baseTileSource = source
+		return copy
+	}
+
 	/// Locks the map's orientation, using `course` (COG) for course-up and
 	/// `heading` (HDG) for head-up. The user cannot rotate the map by gesture.
 	public func orientation(_ orientation: MapOrientation, course: Double? = nil, heading: Double? = nil)
@@ -636,6 +647,7 @@ extension MapKitView {
 				map.isPitchEnabled = config.isInteractive
 			#endif
 			map.pointOfInterestFilter = config.pointOfInterestFilter.mkFilter
+			coordinator.applyBaseTileSource(config.baseTileSource, on: map)
 			coordinator.applyWMSUnderlay(config.wmsUnderlay, on: map)
 			coordinator.mapDelegate.onSelect = config.onSelectMarker
 			coordinator.bindRegionSettled(config.onRegionSettled)
@@ -675,6 +687,10 @@ extension MapKitView {
 		private var wmsUnderlaySource: WMSTileSource?
 		/// The live WMS underlay overlay, so it can be removed or replaced.
 		private var wmsUnderlayOverlay: MKTileOverlay?
+		/// The base tile source currently applied, kept to detect changes.
+		private var baseTileSource: MapTileSource?
+		/// The live base tile overlay, so it can be removed or replaced.
+		private var baseTileOverlay: MKTileOverlay?
 
 		/// Attaches a single tap recogniser to the map (once), routed to the
 		/// delegate which converts the point and forwards a coordinate.
@@ -747,6 +763,27 @@ extension MapKitView {
 							latitude: region.center.latitude, longitude: region.center.longitude),
 						latitudeDelta: region.span.latitudeDelta,
 						longitudeDelta: region.span.longitudeDelta))
+			}
+		}
+
+		/// Adds, removes or replaces the opaque base tile layer to match `source`,
+		/// drawn at the very bottom (so it replaces Apple's base map). Idempotent: a
+		/// repeat call with the same source does nothing.
+		func applyBaseTileSource(_ source: MapTileSource?, on map: MKMapView) {
+			guard source != baseTileSource else { return }
+			baseTileSource = source
+			if let existing = baseTileOverlay {
+				map.removeOverlay(existing)
+				baseTileOverlay = nil
+			}
+			if let source {
+				// Full-zoom, opaque, content-replacing — and inserted at the bottom so
+				// it sits under the WMS underlay, the seamark tiles and the markers.
+				let overlay = CachedTileOverlay(
+					directory: source.cacheDirectory, urlTemplate: source.urlTemplate,
+					appGroup: source.appGroup, minimumZ: 0, maximumZ: 19, canReplaceMapContent: true)
+				baseTileOverlay = overlay
+				map.insertOverlay(overlay, at: 0, level: .aboveRoads)
 			}
 		}
 
