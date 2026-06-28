@@ -596,12 +596,11 @@ extension MapKitView {
 	/// view's existing `MKMapView` (which already carries the tile overlays).
 	#if os(macOS)
 		struct MarkableMapRepresentable: NSViewRepresentable {
-			let map: MKMapView
 			let config: MapViewConfiguration
 
 			func makeCoordinator() -> MarkableMapState { MarkableMapState() }
 			func makeNSView(context: Context) -> MKMapView {
-				installMap(map, coordinator: context.coordinator)
+				installMap(coordinator: context.coordinator)
 			}
 			func updateNSView(_ map: MKMapView, context: Context) {
 				updateMap(map, coordinator: context.coordinator)
@@ -609,12 +608,11 @@ extension MapKitView {
 		}
 	#else
 		struct MarkableMapRepresentable: UIViewRepresentable {
-			let map: MKMapView
 			let config: MapViewConfiguration
 
 			func makeCoordinator() -> MarkableMapState { MarkableMapState() }
 			func makeUIView(context: Context) -> MKMapView {
-				installMap(map, coordinator: context.coordinator)
+				installMap(coordinator: context.coordinator)
 			}
 			func updateUIView(_ map: MKMapView, context: Context) {
 				updateMap(map, coordinator: context.coordinator)
@@ -629,9 +627,14 @@ extension MapKitView {
 		/// coordinator (which SwiftUI keeps alive) owns the delegate; `MKMapView`'s
 		/// `delegate` is weak, so the transient view's own delegate would otherwise be
 		/// deallocated and custom rendering (vessel marker, tile overlays) would stop.
-		func installMap(_ map: MKMapView, coordinator: MarkableMapState) -> MKMapView {
+		func installMap(coordinator: MarkableMapState) -> MKMapView {
+			let map = coordinator.map
 			map.delegate = coordinator.mapDelegate
 			coordinator.installMapTapIfNeeded(on: map)
+			coordinator.addTileOverlaysIfNeeded(config.tileOverlays, on: map)
+			if let region = config.initialRegion {
+				map.setRegion(region, animated: false)
+			}
 			return map
 		}
 
@@ -669,6 +672,23 @@ extension MapKitView {
 		/// Owned here so it outlives the transient `MapKitView`/representable and
 		/// keeps serving the map's (weak) delegate for the view's whole lifetime.
 		let mapDelegate = MapDelegate()
+		/// The map view itself — created ONCE here, not in the transient `MapKitView`
+		/// struct, so a flurry of SwiftUI updates can't re-allocate it (and its tile
+		/// overlays) and keep the chart from settling.
+		let map = MKMapView()
+		/// Whether the configured tile overlays have already been added (once).
+		private var didAddTileOverlays = false
+
+		/// Adds the configured tile overlays to the map exactly once.
+		func addTileOverlaysIfNeeded(
+			_ specs: [(cacheDirectory: String, urlTemplate: String)], on map: MKMapView
+		) {
+			guard !didAddTileOverlays else { return }
+			didAddTileOverlays = true
+			for spec in specs {
+				map.addOverlay(CachedTileOverlay(directory: spec.cacheDirectory, urlTemplate: spec.urlTemplate))
+			}
+		}
 		private var didInitialCenter = false
 		private var lastRecenterToken: AnyHashable?
 		private var annotations: [AnyHashable: MarkerAnnotation] = [:]

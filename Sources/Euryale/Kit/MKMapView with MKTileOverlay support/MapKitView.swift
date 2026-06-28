@@ -108,6 +108,11 @@ public struct MapTileSource: Sendable, Equatable {
 /// platform variants of the view (and its representable) so the field list is
 /// declared once instead of repeated per platform.
 struct MapViewConfiguration {
+	/// The cached tile overlays (cache dir + URL template) added once when the map
+	/// is first made — NOT on every SwiftUI update. Set by the initialisers.
+	var tileOverlays: [(cacheDirectory: String, urlTemplate: String)] = []
+	/// The region the map is centred on when first made (see `init(initialRegion:)`).
+	var initialRegion: MKCoordinateRegion?
 	/// Position markers to draw (see `marking(_:)`).
 	var markers: [MapMarker] = []
 	/// Styled polylines to draw (see `tracking(_:)`).
@@ -294,12 +299,11 @@ struct MapViewConfiguration {
 
 		// MARK: Properties
 
-		/// The delegate handling MKMapView rendering and events.
-		let delegate = MapDelegate()
-		/// The underlying MKMapView instance displayed by this view.
-		let map = MKMapView()
-
-		/// Everything this view carries from its modifiers.
+		/// Everything this view carries from its modifiers and initialisers. The
+		/// `MKMapView` itself is owned by the persistent coordinator (created once),
+		/// NOT here — this struct is re-created on every SwiftUI update, so holding
+		/// the map (and its overlays) here would re-allocate it dozens of times a
+		/// second and stop the chart from ever settling.
 		var config = MapViewConfiguration()
 
 		// MARK: Init
@@ -322,10 +326,7 @@ struct MapViewConfiguration {
 		///
 		/// - Parameter overlays: An array of tuples where each contains a cache directory and URL template.
 		public init(overlays: [(cacheDirectory: String, urlTemplate: String)]) {
-			map.delegate = delegate
-			for overlay in overlays {
-				map.addOverlay(CachedTileOverlay(directory: overlay.cacheDirectory, urlTemplate: overlay.urlTemplate))
-			}
+			config.tileOverlays = overlays
 		}
 
 		/// Creates a MapKitView with an initial region and optional tile overlays.
@@ -333,18 +334,21 @@ struct MapViewConfiguration {
 		///   - initialRegion: The starting region for the map.
 		///   - overlays: An array of overlay specifications (cache directory and URL template).
 		public init(initialRegion: MKCoordinateRegion, overlays: [(cacheDirectory: String, urlTemplate: String)] = []) {
-			map.delegate = delegate
-			for overlay in overlays {
-				map.addOverlay(CachedTileOverlay(directory: overlay.cacheDirectory, urlTemplate: overlay.urlTemplate))
-			}
-			map.setRegion(initialRegion, animated: false)
+			config.tileOverlays = overlays
+			config.initialRegion = initialRegion
 		}
 
 		// MARK: Public API
 
-		/// Centres the map on the given region.
-		public func setRegion(_ region: MKCoordinateRegion) {
-			map.setRegion(region, animated: false)
+		/// Centres the map on the given region when it is first made.
+		///
+		/// A modifier (the map is created once by the coordinator, so this records
+		/// the region in the configuration rather than mutating a live map view).
+		@discardableResult
+		public func setRegion(_ region: MKCoordinateRegion) -> MapKitView {
+			var copy = self
+			copy.config.initialRegion = region
+			return copy
 		}
 
 		// MARK: Body
@@ -352,7 +356,7 @@ struct MapViewConfiguration {
 		/// The SwiftUI view that wraps the MKMapView (with its tile overlays) and
 		/// applies the markers, tracks and follow target.
 		public var body: some View {
-			MarkableMapRepresentable(map: map, config: config)
+			MarkableMapRepresentable(config: config)
 				.ignoresSafeArea()
 				.accessibilityIdentifier("MapKitView.map")
 		}
