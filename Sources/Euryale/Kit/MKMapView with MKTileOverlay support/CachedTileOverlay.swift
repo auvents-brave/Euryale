@@ -30,6 +30,9 @@ import MapKit
 			urlTemplate: String?,
 			appGroup: String? = nil,
 			maximumCacheAge: TimeInterval = 30 * 24 * 60 * 60,
+			minimumZ: Int = 9,
+			maximumZ: Int? = nil,
+			canReplaceMapContent: Bool = false,
 			session: URLSession? = nil
 		) {
 			self.maximumCacheAge = maximumCacheAge
@@ -69,8 +72,9 @@ import MapKit
 			}
 
 			super.init(urlTemplate: urlTemplate)
-			minimumZ = 9
-			canReplaceMapContent = false
+			self.minimumZ = minimumZ
+			if let maximumZ { self.maximumZ = maximumZ }
+			self.canReplaceMapContent = canReplaceMapContent
 		}
 
 		// MARK: Methods
