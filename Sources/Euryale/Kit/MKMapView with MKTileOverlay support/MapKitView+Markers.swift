@@ -210,6 +210,19 @@ extension MapKitView {
 		return copy
 	}
 
+	/// Caches every tile layer in the given App Group's shared container instead of
+	/// the app's own sandbox Caches, so the cache survives app reinstalls and is
+	/// shared with extensions. `nil` keeps the per-app cache. Has no effect on
+	/// watchOS. (Still a `Caches` folder, so the system may reclaim it under genuine
+	/// disk pressure — by design for regenerable tiles.)
+	///
+	/// - Parameter identifier: The App Group identifier, or `nil` for per-app caches.
+	public func tileCacheAppGroup(_ identifier: String?) -> MapKitView {
+		var copy = self
+		copy.config.cacheAppGroup = identifier
+		return copy
+	}
+
 	/// Locks the map's orientation, using `course` (COG) for course-up and
 	/// `heading` (HDG) for head-up. The user cannot rotate the map by gesture.
 	public func orientation(_ orientation: MapOrientation, course: Double? = nil, heading: Double? = nil)
@@ -631,7 +644,7 @@ extension MapKitView {
 			let map = coordinator.map
 			map.delegate = coordinator.mapDelegate
 			coordinator.installMapTapIfNeeded(on: map)
-			coordinator.addTileOverlaysIfNeeded(config.tileOverlays, on: map)
+			coordinator.addTileOverlaysIfNeeded(config.tileOverlays, appGroup: config.cacheAppGroup, on: map)
 			if let region = config.initialRegion {
 				map.setRegion(region, animated: false)
 			}
@@ -650,8 +663,8 @@ extension MapKitView {
 				map.isPitchEnabled = config.isInteractive
 			#endif
 			map.pointOfInterestFilter = config.pointOfInterestFilter.mkFilter
-			coordinator.applyBaseTileSource(config.baseTileSource, on: map)
-			coordinator.applyWMSUnderlay(config.wmsUnderlay, on: map)
+			coordinator.applyBaseTileSource(config.baseTileSource, appGroup: config.cacheAppGroup, on: map)
+			coordinator.applyWMSUnderlay(config.wmsUnderlay, appGroup: config.cacheAppGroup, on: map)
 			coordinator.mapDelegate.onSelect = config.onSelectMarker
 			coordinator.bindRegionSettled(config.onRegionSettled)
 			coordinator.bindMapTap(config.onMapTap)
@@ -681,12 +694,14 @@ extension MapKitView {
 
 		/// Adds the configured tile overlays to the map exactly once.
 		func addTileOverlaysIfNeeded(
-			_ specs: [(cacheDirectory: String, urlTemplate: String)], on map: MKMapView
+			_ specs: [(cacheDirectory: String, urlTemplate: String)], appGroup: String?, on map: MKMapView
 		) {
 			guard !didAddTileOverlays else { return }
 			didAddTileOverlays = true
 			for spec in specs {
-				map.addOverlay(CachedTileOverlay(directory: spec.cacheDirectory, urlTemplate: spec.urlTemplate))
+				map.addOverlay(
+					CachedTileOverlay(
+						directory: spec.cacheDirectory, urlTemplate: spec.urlTemplate, appGroup: appGroup))
 			}
 		}
 		private var didInitialCenter = false
@@ -789,7 +804,7 @@ extension MapKitView {
 		/// Adds, removes or replaces the opaque base tile layer to match `source`,
 		/// drawn at the very bottom (so it replaces Apple's base map). Idempotent: a
 		/// repeat call with the same source does nothing.
-		func applyBaseTileSource(_ source: MapTileSource?, on map: MKMapView) {
+		func applyBaseTileSource(_ source: MapTileSource?, appGroup: String?, on map: MKMapView) {
 			guard source != baseTileSource else { return }
 			baseTileSource = source
 			if let existing = baseTileOverlay {
@@ -799,9 +814,13 @@ extension MapKitView {
 			if let source {
 				// Full-zoom, opaque, content-replacing — and inserted at the bottom so
 				// it sits under the WMS underlay, the seamark tiles and the markers.
+				// (Apple's base is hidden — a pure OSM chart.) Black gaps while a tile
+				// loads are avoided by a persistent on-disk cache, not by Apple showing
+				// through: see the App Group cache (`tileCacheAppGroup`).
 				let overlay = CachedTileOverlay(
 					directory: source.cacheDirectory, urlTemplate: source.urlTemplate,
-					appGroup: source.appGroup, minimumZ: 0, maximumZ: 19, canReplaceMapContent: true)
+					appGroup: source.appGroup ?? appGroup,
+					minimumZ: 0, maximumZ: 19, canReplaceMapContent: true)
 				baseTileOverlay = overlay
 				map.insertOverlay(overlay, at: 0, level: .aboveRoads)
 			}
@@ -810,7 +829,7 @@ extension MapKitView {
 		/// Adds, removes or replaces the WMS underlay to match `source`, drawing it
 		/// beneath the tile overlays (and the markers/tracks). Idempotent: a repeat
 		/// call with the same source does nothing.
-		func applyWMSUnderlay(_ source: WMSTileSource?, on map: MKMapView) {
+		func applyWMSUnderlay(_ source: WMSTileSource?, appGroup: String?, on map: MKMapView) {
 			guard source != wmsUnderlaySource else { return }
 			wmsUnderlaySource = source
 			if let existing = wmsUnderlayOverlay {
@@ -819,7 +838,7 @@ extension MapKitView {
 			}
 			if let source {
 				let overlay = WMSTileOverlay(
-					directory: source.cacheDirectory, getMapBaseURL: source.getMapBaseURL)
+					directory: source.cacheDirectory, getMapBaseURL: source.getMapBaseURL, appGroup: appGroup)
 				wmsUnderlayOverlay = overlay
 				map.addOverlay(overlay, level: .aboveRoads)
 			}

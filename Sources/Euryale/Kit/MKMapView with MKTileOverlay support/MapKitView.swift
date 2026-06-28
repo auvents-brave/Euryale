@@ -143,6 +143,10 @@ struct MapViewConfiguration {
 	/// An optional slippy-map base layer (e.g. OpenStreetMap) replacing Apple's
 	/// base map; `nil` keeps Apple Maps. See `baseTileSource(_:)`.
 	var baseTileSource: MapTileSource?
+	/// An optional App Group whose shared container caches every tile layer, so the
+	/// cache survives app reinstalls (and isn't the app's own purgeable sandbox
+	/// Caches). `nil` uses the per-app Caches. See `tileCacheAppGroup(_:)`.
+	var cacheAppGroup: String?
 	/// Which way is up — the map's rotation is locked to this. See `orientation(_:course:heading:)`.
 	var orientation: MapOrientation = .northUp
 	/// Course over ground (degrees), driving course-up and the autoscroll offset.
