@@ -50,6 +50,7 @@ public struct SiriTipItem {
 /// This implementation provides the same `init(intent:isVisible:)` interface so
 /// that ``SiriTipItem`` and ``RollingTipView`` compile identically on all platforms.
 #if os(macOS) || targetEnvironment(macCatalyst)
+	/// The macOS / Mac Catalyst stand-in for the system Siri tip card.
 	public struct SiriTipView<Intent: SiriTipDisplayable>: View {
 		let intent: Intent
 		@Binding var isVisible: Bool
@@ -63,6 +64,7 @@ public struct SiriTipItem {
 			_isVisible = isVisible
 		}
 
+		/// The content and behaviour of the view.
 		public var body: some View {
 			if isVisible {
 				HStack(spacing: 8) {

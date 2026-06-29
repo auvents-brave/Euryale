@@ -1,5 +1,9 @@
 public import SwiftUI
 
+#if DEBUG
+	import AppIntents
+#endif
+
 // MARK: - RollingTipView
 
 /// Displays one randomly chosen Siri tip from a list, rotating to a new one
@@ -30,6 +34,7 @@ public struct RollingTipView: View {
 		self.items = items
 	}
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		// Siri tips have no surface on tvOS/watchOS — present but inert there,
 		// so call sites stay platform-agnostic (same idea as the other shims).
@@ -59,3 +64,17 @@ public struct RollingTipView: View {
 		return sequence.first { items[$0].isVisible.wrappedValue }
 	}
 }
+
+#if DEBUG && !os(tvOS) && !os(watchOS)
+	private struct PreviewTipIntent: AppIntent, SiriTipDisplayable {
+		static let title: LocalizedStringResource = "Count Furniture"
+		static let tipPhrase: LocalizedStringResource = "Count furniture in My App"
+		func perform() async throws -> some IntentResult { .result() }
+	}
+
+	#Preview {
+		@Previewable @State var isVisible = true
+		RollingTipView(.init(PreviewTipIntent(), $isVisible))
+			.padding()
+	}
+#endif

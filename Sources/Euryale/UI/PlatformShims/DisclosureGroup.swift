@@ -40,6 +40,7 @@
 			self.label = label
 		}
 
+		/// The content and behaviour of the view.
 		public var body: some View {
 			VStack(alignment: .leading, spacing: 8) {
 				Button {

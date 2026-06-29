@@ -22,6 +22,7 @@ public struct MultiPagePill<Page: View>: View {
 		self.page = page
 	}
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		VStack(alignment: .leading, spacing: 8) {
 			page(min(index, pageCount - 1))

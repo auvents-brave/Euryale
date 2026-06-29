@@ -141,6 +141,7 @@ public struct PaginatedView<Page: Identifiable, Content: View>: View {
 		self.content = content
 	}
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		let paginator =
 			Group {
@@ -397,6 +398,7 @@ public struct PaginatedPill<Page: Identifiable, Content: View>: View {
 		self.content = content
 	}
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		PaginatedView(
 			pages: pages,

@@ -42,6 +42,7 @@ public struct Pill: View {
 
 	// MARK: Body
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		layout
 			.padding(10)
@@ -115,6 +116,7 @@ public struct PillsView: View {
 
 	/// A single labelled value to be shown by ``PillsView``.
 	public struct Item: Identifiable {
+		/// Stable identity for the item.
 		public let id = UUID()
 		let label: String
 		let systemImage: String?
@@ -159,6 +161,7 @@ public struct PillsView: View {
 
 	// MARK: Body
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		// A row when the width allows it, otherwise stacked.
 		ViewThatFits(in: .horizontal) {

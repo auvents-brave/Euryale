@@ -48,6 +48,7 @@ public struct HtmlView: View {
 
 	// MARK: Body
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		content
 			.accessibilityIdentifier("HtmlView")

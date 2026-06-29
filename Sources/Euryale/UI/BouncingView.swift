@@ -26,6 +26,7 @@ public struct BouncingView<T: View>: View {
 		self.content = content
 	}
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		content()
 			.scaleEffect(scale)

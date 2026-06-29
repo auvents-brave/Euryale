@@ -71,6 +71,7 @@ public struct NetworkAddressView: View {
 
 	// MARK: Body
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		VStack(alignment: .leading, spacing: 12) {
 			if mode == .ipv4IPv6 {

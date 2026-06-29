@@ -32,6 +32,7 @@ where Data.Element: Identifiable {
 		self.content = content
 	}
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		LazyVGrid(
 			columns: [GridItem(.adaptive(minimum: PillMetrics.gridMinimum), spacing: PillMetrics.gridSpacing)],

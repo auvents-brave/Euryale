@@ -204,6 +204,8 @@ public enum QuickActions {
 			}
 		}
 
+		/// Routes a URL the system asked the app to open to ``openURLsHandler``,
+		/// queuing it when no handler is set yet.
 		public func application(
 			_ app: UIApplication,
 			open url: URL,
@@ -219,6 +221,8 @@ public enum QuickActions {
 			}
 		}
 
+		/// Captures a quick action that cold-launched the app so it can be run once
+		/// the UI is ready.
 		public func application(
 			_ application: UIApplication,
 			didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
@@ -232,6 +236,7 @@ public enum QuickActions {
 			return true
 		}
 
+		/// Runs the quick action the user picked from the Home Screen menu.
 		public func application(
 			_ application: UIApplication,
 			performActionFor shortcutItem: UIApplicationShortcutItem,
@@ -262,6 +267,8 @@ public enum QuickActions {
 			}
 		}
 
+		/// Routes files the system asked the app to open to ``openURLsHandler``,
+		/// queuing them when no handler is set yet.
 		public func application(_ application: NSApplication, open urls: [URL]) {
 			MainActor.assumeIsolated {
 				if let handler = Self.openURLsHandler {
@@ -289,6 +296,8 @@ public enum QuickActions {
 			}
 		}
 
+		/// Routes an incoming `NSUserActivity` to ``continueUserActivityHandler``,
+		/// queuing it when no handler is set yet.
 		public func application(
 			_ application: NSApplication,
 			continue userActivity: NSUserActivity,
@@ -304,6 +313,7 @@ public enum QuickActions {
 			}
 		}
 
+		/// Supplies the Dock menu built from the registered ``QuickAction``s.
 		public func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
 			QuickActions.dockMenu()
 		}

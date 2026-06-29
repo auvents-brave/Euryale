@@ -57,6 +57,7 @@ public struct PopupPresenter<Trigger: View, PresentedContent: View>: View {
 
 	// MARK: Body
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		Button {
 			isPresented = true

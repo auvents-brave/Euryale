@@ -75,6 +75,7 @@ public struct MapTrackStyle: Sendable {
 /// A position marker shown on a ``MapKitView``.
 public struct MapMarker: Identifiable {
 
+	/// Stable identity so the marker animates in place across updates.
 	public let id: AnyHashable
 	/// Where the marker is anchored.
 	public var coordinate: Coordinate
@@ -117,6 +118,7 @@ public struct MapMarker: Identifiable {
 /// A styled polyline drawn on a ``MapKitView``.
 public struct MapTrack: Identifiable {
 
+	/// Stable identity so the track animates in place across updates.
 	public let id: AnyHashable
 	/// The polyline's coordinates, in draw order (first → last).
 	public var coordinates: [Coordinate]

@@ -186,6 +186,7 @@ public struct EntityList<Item: Identifiable, SelectionValue: Hashable, Row: View
 		)
 	}
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		if scrollsToSelection, let selection {
 			ScrollViewReader { proxy in
@@ -290,6 +291,7 @@ public struct ListControlBar<Add: View>: View {
 		self.add = add
 	}
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		HStack(spacing: 0) {
 			// The borderless style must sit on each control, not the `HStack`: on a

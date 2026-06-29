@@ -5,6 +5,7 @@ public import SwiftUI
 /// One shareable file offered by a share action. A single item renders as a
 /// `ShareLink`; several render as a menu of `ShareLink`s (e.g. format choice).
 public struct ToolbarShareItem: Identifiable {
+	/// Stable identity for the share item.
 	public let id = UUID()
 	let title: String
 	let systemImage: String
@@ -38,6 +39,7 @@ public struct ToolbarAction: Identifiable {
 		case iconOnly
 	}
 
+	/// Stable identity for the action.
 	public let id: String
 	let title: String
 	let systemImage: String
@@ -208,6 +210,7 @@ public struct AdaptiveToolbar: View {
 		}
 	}
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		layout
 			#if os(tvOS)

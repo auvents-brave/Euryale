@@ -30,6 +30,7 @@
 			_selection = State(initialValue: initialTopic ?? book.topics.first?.id)
 		}
 
+		/// The content and behaviour of the view.
 		public var body: some View {
 			NavigationSplitView {
 				sidebar

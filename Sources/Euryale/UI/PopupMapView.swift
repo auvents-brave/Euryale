@@ -55,6 +55,7 @@ public struct PopupMapView: View {
 
 	// MARK: Body
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		#if os(watchOS)
 			Button(title ?? annotationTitle ?? "Open in Maps") {

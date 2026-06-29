@@ -5,37 +5,58 @@ import Foundation
 #if canImport(WatchKit)
 	public import WatchKit
 
+	/// The platform's application type — `WKApplication` on watchOS.
 	public typealias PlatformApplication = WKApplication
+	/// The platform's colour type — `UIColor` on watchOS.
 	public typealias PlatformColor = UIColor
+	/// The platform's image type — `UIImage` on watchOS.
 	public typealias PlatformImage = UIImage
+	/// The platform's font type — `UIFont` on watchOS.
 	public typealias PlatformFont = UIFont
+	/// The platform's app-delegate base type — `NSObject` on watchOS.
 	public typealias PlatformDelegate = NSObject
 
 #elseif canImport(UIKit)
 	public import UIKit
 	public import SwiftUI
 
+	/// The platform's application type — `UIApplication` on UIKit platforms.
 	public typealias PlatformApplication = UIApplication
+	/// The platform's view type — `UIView` on UIKit platforms.
 	public typealias PlatformView = UIView
+	/// The platform's colour type — `UIColor` on UIKit platforms.
 	public typealias PlatformColor = UIColor
+	/// The platform's image type — `UIImage` on UIKit platforms.
 	public typealias PlatformImage = UIImage
+	/// The platform's font type — `UIFont` on UIKit platforms.
 	public typealias PlatformFont = UIFont
+	/// The platform's app-delegate base type — `UIResponder` on UIKit platforms.
 	public typealias PlatformDelegate = UIResponder
+	/// The platform's view-controller type — `UIViewController` on UIKit platforms.
 	public typealias PlatformViewController = UIViewController
+	/// The platform's SwiftUI hosting controller — `UIHostingController` on UIKit platforms.
 	public typealias PlatformHostingController = UIHostingController
 
 #elseif canImport(AppKit)
 	public import AppKit
 	public import SwiftUI
 
+	/// The platform's application type — `NSApplication` on AppKit platforms.
 	public typealias PlatformApplication = NSApplication
+	/// The platform's view type — `NSView` on AppKit platforms.
 	public typealias PlatformView = NSView
+	/// The platform's colour type — `NSColor` on AppKit platforms.
 	public typealias PlatformColor = NSColor
+	/// The platform's image type — `NSImage` on AppKit platforms.
 	public typealias PlatformImage = NSImage
+	/// The platform's font type — `NSFont` on AppKit platforms.
 	public typealias PlatformFont = NSFont
+	/// The platform's app-delegate base type — `NSObject` on AppKit platforms.
 	public typealias PlatformDelegate = NSObject
 
+	/// The platform's view-controller type — `NSViewController` on AppKit platforms.
 	public typealias PlatformViewController = NSViewController
+	/// The platform's SwiftUI hosting controller — `NSHostingController` on AppKit platforms.
 	public typealias PlatformHostingController = NSHostingController
 #endif
 
@@ -52,6 +73,7 @@ import Foundation
 /// PlatformApplication.platformShared.openURL(url)
 /// ```
 extension PlatformApplication {
+	/// The platform's shared application instance, resolved per platform.
 	public static var platformShared: PlatformApplication {
 		#if canImport(WatchKit)
 			shared()
