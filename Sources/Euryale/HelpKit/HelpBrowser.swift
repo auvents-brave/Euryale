@@ -79,6 +79,17 @@
 						.padding()
 				}
 				.navigationTitle(topic.title)
+				// Articles cross-reference each other with relative Markdown links
+				// (`[…](connecting.md)`). Resolve those to the matching topic instead
+				// of handing them to the system (which cannot open them); everything
+				// else — http links etc. — keeps the default behaviour.
+				.environment(
+					\.openURL,
+					OpenURLAction { url in
+						guard let target = linkedTopic(for: url) else { return .systemAction }
+						selection = target.id
+						return .handled
+					})
 			} else {
 				ContentUnavailableView {
 					Label {
@@ -90,6 +101,19 @@
 					Text("Choose a help topic from the sidebar.", bundle: .module)
 				}
 			}
+		}
+	}
+
+	extension HelpBrowser {
+		/// The topic a relative article link points at, matched by its source file
+		/// name (`connecting.md`) and falling back to the slug (`connecting`).
+		/// `nil` for absolute links (http…), which keep the system behaviour.
+		private func linkedTopic(for url: URL) -> HelpTopic? {
+			guard url.scheme == nil || url.scheme?.isEmpty == true else { return nil }
+			let name = url.lastPathComponent
+			guard name.isEmpty == false else { return nil }
+			return book.allTopics.first { $0.file == name }
+				?? book.topic(id: url.deletingPathExtension().lastPathComponent)
 		}
 	}
 
