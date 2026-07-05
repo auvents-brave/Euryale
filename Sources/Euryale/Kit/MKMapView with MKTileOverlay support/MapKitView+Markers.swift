@@ -49,7 +49,7 @@ public enum MapMarkerShape: Sendable {
 // MARK: - MapTrackStyle
 
 /// Visual style for a ``MapTrack`` polyline.
-public struct MapTrackStyle: Sendable {
+public struct MapTrackStyle: Equatable, Sendable {
 
 	/// Base stroke colour.
 	public var color: Color
@@ -763,6 +763,9 @@ extension MapKitView {
 		private var annotations: [AnyHashable: MarkerAnnotation] = [:]
 		private var overlays: [AnyHashable: (halo: MKPolyline, core: MKPolyline)] = [:]
 		private var pointCounts: [AnyHashable: Int] = [:]
+		/// The style each overlay was built with — a style-only edit (e.g. a route
+		/// recoloured in the library) must rebuild the overlay too.
+		private var trackStyleCache: [AnyHashable: MapTrackStyle] = [:]
 		/// The most recently applied markers, kept so directional glyphs can be
 		/// re-rendered against a new map rotation without a SwiftUI update.
 		private var lastMarkers: [MapMarker] = []
@@ -1074,7 +1077,11 @@ extension MapKitView {
 			var seen = Set<AnyHashable>()
 			for track in tracks {
 				seen.insert(track.id)
-				if pointCounts[track.id] == track.coordinates.count { continue }
+				if pointCounts[track.id] == track.coordinates.count,
+					trackStyleCache[track.id] == track.style
+				{
+					continue
+				}
 				removeTrack(track.id, on: map)
 				guard track.coordinates.count >= 2 else { continue }
 
@@ -1088,6 +1095,7 @@ extension MapKitView {
 				delegate?.trackStyles[ObjectIdentifier(core)] = (track.style, false)
 				overlays[track.id] = (halo, core)
 				pointCounts[track.id] = track.coordinates.count
+				trackStyleCache[track.id] = track.style
 				map.addOverlay(halo, level: .aboveLabels)
 				map.addOverlay(core, level: .aboveLabels)
 			}
@@ -1105,6 +1113,7 @@ extension MapKitView {
 			delegate?.trackStyles[ObjectIdentifier(pair.core)] = nil
 			overlays[id] = nil
 			pointCounts[id] = nil
+			trackStyleCache[id] = nil
 		}
 	}
 
