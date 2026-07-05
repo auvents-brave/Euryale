@@ -35,6 +35,15 @@ public enum MapPositionStyle: Sendable {
 	/// (for shapes whose colour the caller supplies, such as lateral buoys). Drawn
 	/// upright (direction is ignored). Falls back to a dot when the asset is missing.
 	case image(name: String, tint: Color?)
+	/// A plain tinted mark shape — a pin, a square or a circle — drawn with the
+	/// same white outline as ``dot(_:)``. For chart marks whose symbol is a basic
+	/// shape rather than a glyph or an image.
+	case shape(MapMarkerShape, Color)
+}
+
+/// The plain mark shapes available to ``MapPositionStyle/shape(_:_:)``.
+public enum MapMarkerShape: Sendable {
+	case pin, square, circle
 }
 
 // MARK: - MapTrackStyle
@@ -393,6 +402,8 @@ extension MapKitView {
 					drawSymbolBadge(ctx, centre: centre, systemName: systemName, color: color)
 				case .image(let name, let tint):
 					drawChartSymbol(ctx, centre: centre, name: name, tint: tint)
+				case .shape(let shape, let color):
+					drawShape(ctx, centre: centre, shape: shape, color: color)
 				}
 				if let line {
 					// Sit the label a touch closer to the hull (the glyph occupies
@@ -434,6 +445,47 @@ extension MapKitView {
 					x: centre.x - radius, y: centre.y - radius,
 					width: radius * 2, height: radius * 2
 				))
+		}
+
+		/// Draws a plain mark shape with the same white outline as ``drawDot``.
+		private static func drawShape(_ ctx: CGContext, centre: CGPoint, shape: MapMarkerShape, color: Color) {
+			switch shape {
+			case .circle:
+				drawDot(ctx, centre: centre, color: color)
+			case .square:
+				let side: CGFloat = 13
+				let ring: CGFloat = 2
+				let outer = CGRect(
+					x: centre.x - side / 2 - ring, y: centre.y - side / 2 - ring,
+					width: side + 2 * ring, height: side + 2 * ring)
+				let inner = CGRect(x: centre.x - side / 2, y: centre.y - side / 2, width: side, height: side)
+				ctx.setFillColor(PlatformColor.white.cgColor)
+				ctx.addPath(CGPath(roundedRect: outer, cornerWidth: 3.5, cornerHeight: 3.5, transform: nil))
+				ctx.fillPath()
+				ctx.setFillColor(PlatformColor(color).cgColor)
+				ctx.addPath(CGPath(roundedRect: inner, cornerWidth: 2, cornerHeight: 2, transform: nil))
+				ctx.fillPath()
+			case .pin:
+				// A teardrop: a round head over a triangle tapering to the tip,
+				// drawn twice — inflated in white for the outline, then in colour.
+				// Arc-free on purpose (a circle/triangle union), so the flipped
+				// y-axis cannot invert an arc direction.
+				func teardrop(head: CGFloat, spread: CGFloat, baseY: CGFloat, tipY: CGFloat, fill: CGColor) {
+					ctx.setFillColor(fill)
+					ctx.fillEllipse(
+						in: CGRect(
+							x: centre.x - head, y: centre.y - 4 - head,
+							width: head * 2, height: head * 2))
+					ctx.beginPath()
+					ctx.move(to: CGPoint(x: centre.x - spread, y: centre.y + baseY))
+					ctx.addLine(to: CGPoint(x: centre.x + spread, y: centre.y + baseY))
+					ctx.addLine(to: CGPoint(x: centre.x, y: centre.y + tipY))
+					ctx.closePath()
+					ctx.fillPath()
+				}
+				teardrop(head: 8.5, spread: 7, baseY: 0.6, tipY: 12.6, fill: PlatformColor.white.cgColor)
+				teardrop(head: 6.5, spread: 5.2, baseY: 0, tipY: 10, fill: PlatformColor(color).cgColor)
+			}
 		}
 
 		private static func drawTriangle(_ ctx: CGContext, centre: CGPoint, direction: Double, color: Color) {
@@ -1115,6 +1167,27 @@ extension MapKitView {
 					.overlay(Circle().stroke(.white, lineWidth: 2))
 			case .image(let name, let tint):
 				chartImage(name: name, tint: tint)
+			case .shape(let shape, let color):
+				markShape(shape, color)
+			}
+		}
+
+		/// The plain mark shapes, with the same white outline as ``dot(_:)``.
+		@ViewBuilder
+		private func markShape(_ shape: MapMarkerShape, _ color: Color) -> some View {
+			switch shape {
+			case .circle:
+				dot(color)
+			case .square:
+				RoundedRectangle(cornerRadius: 3.5)
+					.fill(.white)
+					.frame(width: 17, height: 17)
+					.overlay(RoundedRectangle(cornerRadius: 2).fill(color).frame(width: 13, height: 13))
+			case .pin:
+				Teardrop()
+					.fill(.white)
+					.frame(width: 17, height: 23)
+					.overlay(Teardrop().fill(color).frame(width: 13, height: 17.5))
 			}
 		}
 
@@ -1142,6 +1215,21 @@ extension MapKitView {
 				.fill(color)
 				.frame(width: 16, height: 16)
 				.overlay(Circle().stroke(.white, lineWidth: 2))
+		}
+	}
+
+	/// A map-pin teardrop: a round head over a triangle tapering to the tip —
+	/// the union of a circle and a triangle, mirroring the bitmap renderer.
+	private struct Teardrop: Shape {
+		func path(in rect: CGRect) -> Path {
+			var path = Path()
+			let radius = rect.width / 2
+			path.addEllipse(in: CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: rect.width))
+			path.move(to: CGPoint(x: rect.midX - radius * 0.8, y: rect.minY + radius * 1.55))
+			path.addLine(to: CGPoint(x: rect.midX + radius * 0.8, y: rect.minY + radius * 1.55))
+			path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+			path.closeSubpath()
+			return path
 		}
 	}
 
