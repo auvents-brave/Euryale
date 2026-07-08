@@ -20,7 +20,7 @@
 		/// ``HelpBook/baseURL``.
 		let baseURL: URL?
 
-		@ViewBuilder
+		@ContentBuilder
 		func makeImage(url: URL?) -> some View {
 			if let image = resolved(url) {
 				image

@@ -1182,7 +1182,7 @@ extension MapKitView {
 		}
 
 		/// The plain mark shapes, with the same white outline as ``dot(_:)``.
-		@ViewBuilder
+		@ContentBuilder
 		private func markShape(_ shape: MapMarkerShape, _ color: Color) -> some View {
 			switch shape {
 			case .circle:
@@ -1202,7 +1202,7 @@ extension MapKitView {
 
 		/// The image-asset glyph, tinted when a colour is supplied (the shared buoy
 		/// shapes), else drawn in its own colours; falls back to a dot when missing.
-		@ViewBuilder
+		@ContentBuilder
 		private func chartImage(name: String, tint: Color?) -> some View {
 			if let image = PlatformImage(named: name) {
 				if let tint {

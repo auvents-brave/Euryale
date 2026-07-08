@@ -54,7 +54,7 @@ public struct Pill: View {
 
 	/// Caption above the value when there's room; caption and value side by side
 	/// when vertical space is tight (e.g. iPhone landscape) to save height.
-	@ViewBuilder
+	@ContentBuilder
 	private var layout: some View {
 		if isHeightConstrained {
 			HStack {
@@ -152,7 +152,7 @@ public struct PillsView: View {
 
 	// MARK: Helpers
 
-	@ViewBuilder
+	@ContentBuilder
 	private func pillItems() -> some View {
 		ForEach(items) { item in
 			Pill(label: item.label, systemImage: item.systemImage, value: item.value)

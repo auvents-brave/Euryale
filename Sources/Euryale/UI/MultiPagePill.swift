@@ -17,7 +17,7 @@ public struct MultiPagePill<Page: View>: View {
 	/// - Parameters:
 	///   - pageCount: Number of pages (at least 1).
 	///   - page: Builds the content for a given page index.
-	public init(pageCount: Int = 1, @ViewBuilder page: @escaping (Int) -> Page) {
+	public init(pageCount: Int = 1, @ContentBuilder page: @escaping (Int) -> Page) {
 		self.pageCount = max(1, pageCount)
 		self.page = page
 	}

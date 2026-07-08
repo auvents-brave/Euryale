@@ -89,7 +89,7 @@ public struct NetworkProtocolView: View {
 
 	// MARK: Protocol picker / label
 
-	@ViewBuilder
+	@ContentBuilder
 	private var protocolRow: some View {
 		// A single protocol means there's nothing to choose — show no row.
 		if available.count > 1 {

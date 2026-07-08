@@ -32,8 +32,8 @@
 		///   - label: The always-visible label that toggles expansion.
 		public init(
 			isExpanded: Binding<Bool>,
-			@ViewBuilder content: @escaping () -> Content,
-			@ViewBuilder label: @escaping () -> Label
+			@ContentBuilder content: @escaping () -> Content,
+			@ContentBuilder label: @escaping () -> Label
 		) {
 			_isExpanded = isExpanded
 			self.content = content

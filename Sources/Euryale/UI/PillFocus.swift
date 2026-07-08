@@ -42,7 +42,7 @@ struct PillFocusModifier: ViewModifier {
 	#if os(tvOS)
 		@FocusState private var isFocused: Bool
 
-		@ViewBuilder
+		@ContentBuilder
 		func body(content: Content) -> some View {
 			let base =
 				content
@@ -59,7 +59,7 @@ struct PillFocusModifier: ViewModifier {
 			}
 		}
 	#else
-		@ViewBuilder
+		@ContentBuilder
 		func body(content: Content) -> some View {
 			if let onSelect {
 				content

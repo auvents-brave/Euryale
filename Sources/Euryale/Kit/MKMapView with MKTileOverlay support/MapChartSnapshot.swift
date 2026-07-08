@@ -1,5 +1,5 @@
 public import MapKit
-public import SwiftUI
+import SwiftUI
 
 #if canImport(UIKit)
 	internal import UIKit

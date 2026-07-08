@@ -56,7 +56,7 @@ public struct HtmlView: View {
 
 	// MARK: Helpers
 
-	@ViewBuilder
+	@ContentBuilder
 	private var content: some View {
 		let fontColor = (colorScheme == .dark) ? "white" : "black"
 		let cleaned = forHTML.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)

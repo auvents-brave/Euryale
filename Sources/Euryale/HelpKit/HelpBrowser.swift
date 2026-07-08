@@ -47,7 +47,7 @@
 			)
 		}
 
-		@ViewBuilder
+		@ContentBuilder
 		private var sidebar: some View {
 			List(selection: $selection) {
 				if query.isEmpty {
@@ -68,7 +68,7 @@
 			}
 		}
 
-		@ViewBuilder
+		@ContentBuilder
 		private var detail: some View {
 			if let id = selection, let topic = book.topic(id: id) {
 				ScrollView {

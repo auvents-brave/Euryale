@@ -22,7 +22,7 @@ extension View {
 	/// Button("Continue") { … }
 	///     .PreferredAvailableButtonStyle()
 	/// ```
-	@ViewBuilder
+	@ContentBuilder
 	public func PreferredAvailableButtonStyle() -> some View {
 		if #available(macOS 26,
 		macCatalyst 26,

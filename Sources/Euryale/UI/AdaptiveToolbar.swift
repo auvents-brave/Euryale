@@ -197,7 +197,7 @@ public struct AdaptiveToolbar: View {
 
 	/// The bar content: either the single collapsed "…" menu button, or the
 	/// adaptive row that fits the widest candidate layout into the space.
-	@ViewBuilder
+	@ContentBuilder
 	private var layout: some View {
 		if collapsedAsMenu {
 			OverflowButton(actions: allActions)
@@ -272,7 +272,7 @@ public struct AdaptiveToolbar: View {
 			+ foldable.filter { $0.display == .iconOnly }.reversed().map(\.id)
 	}
 
-	@ViewBuilder
+	@ContentBuilder
 	private func row(hideCount: Int, compact: Bool) -> some View {
 		let hiddenIDs = Set(foldOrder.prefix(hideCount))
 		let overflow = allActions.filter { hiddenIDs.contains($0.id) }
@@ -348,7 +348,7 @@ private struct ToolbarButton: View {
 	/// A plain `Button`, or — for special actions — a `SettingsLink` (opens the
 	/// macOS Settings window) or a share control (`ShareLink`, or a `Menu` of
 	/// them for ``ToolbarAction/shareItems``).
-	@ViewBuilder
+	@ContentBuilder
 	private var control: some View {
 		#if os(tvOS) || os(watchOS)
 			Button(role: action.role, action: action.action) { styledLabel }
@@ -373,7 +373,7 @@ private struct ToolbarButton: View {
 		/// One file → a `ShareLink`; several → a `Menu` of `ShareLink`s (the
 		/// menu dismisses on selection, so no chooser sheet lingers behind the
 		/// system share sheet).
-		@ViewBuilder
+		@ContentBuilder
 		private var shareControl: some View {
 			if action.shareItems.count == 1 {
 				ShareLink(item: action.shareItems[0].url) { styledLabel }
@@ -425,7 +425,7 @@ private struct ToolbarButton: View {
 		return AnyShapeStyle(.clear)
 	}
 
-	@ViewBuilder
+	@ContentBuilder
 	private var content: some View {
 		if iconOnly {
 			Image(systemName: action.systemImage)
@@ -552,7 +552,7 @@ private struct OverflowButton: View {
 private struct GlassCapsuleBackground: ViewModifier {
 	var isEnabled: Bool = true
 
-	@ViewBuilder
+	@ContentBuilder
 	func body(content: Content) -> some View {
 		if !isEnabled {
 			content
