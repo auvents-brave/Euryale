@@ -42,6 +42,20 @@ public struct HelpBook: Sendable {
 		allTopics.first { $0.id == id }
 	}
 
+	/// Returns the topic a relative article link points at, matched by its
+	/// source file name (`connecting.md`) and falling back to the slug
+	/// (`connecting`).
+	/// - Parameter url: The link destination, as tapped in an article body.
+	/// - Returns: The matching topic, or `nil` for absolute links (`https:` …)
+	///   and empty paths, which keep the system behaviour.
+	public func topic(linkedBy url: URL) -> HelpTopic? {
+		guard url.scheme == nil || url.scheme?.isEmpty == true else { return nil }
+		let name = url.lastPathComponent
+		guard name.isEmpty == false else { return nil }
+		return allTopics.first { $0.file == name }
+			?? topic(id: url.deletingPathExtension().lastPathComponent)
+	}
+
 	// MARK: - Loading
 
 	/// A failure encountered while loading help content from a bundle.
