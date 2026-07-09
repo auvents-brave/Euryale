@@ -60,6 +60,7 @@ public struct IconSegmentedControl<Value: Hashable>: View {
 
 	// MARK: Body
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		HStack(spacing: 3) {
 			ForEach(Array(options.enumerated()), id: \.offset) { item in

@@ -63,7 +63,7 @@ extension View {
 	/// trailing `swipeActions` group where the platform supports it (not macOS /
 	/// tvOS, which have no swipe-to-delete). Use inside any `List` row — with or
 	/// without ``EntityList`` — so swipe and context menus are declared once.
-	@ViewBuilder
+	@ContentBuilder
 	public func rowActions(_ actions: [RowAction]) -> some View {
 		if actions.isEmpty {
 			self
@@ -97,7 +97,7 @@ extension View {
 /// One row-action button, shared by the context menu and the swipe group.
 /// macOS context menus don't tint a `.destructive` role, so the destructive
 /// item is coloured red here — so every list shows a red Delete, not just iOS.
-@MainActor @ViewBuilder
+@MainActor @ContentBuilder
 private func rowActionButton(_ action: RowAction) -> some View {
 	let button = Button(role: action.role, action: action.action) {
 		Label {
@@ -177,7 +177,7 @@ public struct EntityList<Item: Identifiable, SelectionValue: Hashable, Row: View
 		selection: Binding<SelectionValue?>,
 		tag: @escaping (Item) -> SelectionValue,
 		scrollsToSelection: Bool = false,
-		@ViewBuilder row: @escaping (Item) -> Row,
+		@ContentBuilder row: @escaping (Item) -> Row,
 		actions: @escaping (Item) -> [RowAction] = { _ in [] }
 	) {
 		self.init(
@@ -186,6 +186,7 @@ public struct EntityList<Item: Identifiable, SelectionValue: Hashable, Row: View
 		)
 	}
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		if scrollsToSelection, let selection {
 			ScrollViewReader { proxy in
@@ -200,7 +201,7 @@ public struct EntityList<Item: Identifiable, SelectionValue: Hashable, Row: View
 		}
 	}
 
-	@ViewBuilder
+	@ContentBuilder
 	private var list: some View {
 		Group {
 			if let selection {
@@ -220,7 +221,7 @@ public struct EntityList<Item: Identifiable, SelectionValue: Hashable, Row: View
 		}
 	}
 
-	@ViewBuilder
+	@ContentBuilder
 	private func taggedRow(_ item: Item) -> some View {
 		let content = row(item).rowActions(actions(item))
 		if let tag {
@@ -239,7 +240,7 @@ extension EntityList where SelectionValue == Item.ID {
 		_ items: [Item],
 		selection: Binding<Item.ID?>,
 		scrollsToSelection: Bool = false,
-		@ViewBuilder row: @escaping (Item) -> Row,
+		@ContentBuilder row: @escaping (Item) -> Row,
 		actions: @escaping (Item) -> [RowAction] = { _ in [] }
 	) {
 		self.init(
@@ -255,7 +256,7 @@ extension EntityList where SelectionValue == Never {
 	/// uniform row actions.
 	public init(
 		_ items: [Item],
-		@ViewBuilder row: @escaping (Item) -> Row,
+		@ContentBuilder row: @escaping (Item) -> Row,
 		actions: @escaping (Item) -> [RowAction] = { _ in [] }
 	) {
 		self.init(
@@ -283,13 +284,14 @@ public struct ListControlBar<Add: View>: View {
 	public init(
 		canRemove: Bool,
 		remove: @escaping () -> Void,
-		@ViewBuilder add: @escaping () -> Add
+		@ContentBuilder add: @escaping () -> Add
 	) {
 		self.canRemove = canRemove
 		self.remove = remove
 		self.add = add
 	}
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		HStack(spacing: 0) {
 			// The borderless style must sit on each control, not the `HStack`: on a

@@ -21,11 +21,12 @@ public struct BouncingView<T: View>: View {
 
 	/// Creates a bouncing wrapper around the supplied SwiftUI content.
 	///
-	/// - Parameter content: A `@ViewBuilder` closure producing the wrapped view.
-	public init(@ViewBuilder content: @escaping () -> T) {
+	/// - Parameter content: A `@ContentBuilder` closure producing the wrapped view.
+	public init(@ContentBuilder content: @escaping () -> T) {
 		self.content = content
 	}
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		content()
 			.scaleEffect(scale)

@@ -17,11 +17,12 @@ public struct MultiPagePill<Page: View>: View {
 	/// - Parameters:
 	///   - pageCount: Number of pages (at least 1).
 	///   - page: Builds the content for a given page index.
-	public init(pageCount: Int = 1, @ViewBuilder page: @escaping (Int) -> Page) {
+	public init(pageCount: Int = 1, @ContentBuilder page: @escaping (Int) -> Page) {
 		self.pageCount = max(1, pageCount)
 		self.page = page
 	}
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		VStack(alignment: .leading, spacing: 8) {
 			page(min(index, pageCount - 1))
@@ -97,35 +98,44 @@ private var seaBackdrop: some View {
 	}
 }
 
-#Preview("Three pages — boat read-out HUD") {
+/// Preview host: a three-page boat read-out HUD.
+private struct ReadoutHUDPreview: View {
 	struct Readout {
 		let title: LocalizedStringKey
 		let value: String
 		let systemImage: String
 	}
+
 	let pages = [
 		Readout(title: "Heading", value: "235°", systemImage: "location.north.line"),
 		Readout(title: "Speed", value: "12.4 kn", systemImage: "speedometer"),
 		Readout(title: "Apparent wind", value: "18 kn", systemImage: "wind"),
 	]
-	return ZStack(alignment: .topLeading) {
-		seaBackdrop
-		MultiPagePill(pageCount: pages.count) { index in
-			let page = pages[index]
-			HStack(spacing: 8) {
-				Image(systemName: page.systemImage)
-					.font(.title3)
-				VStack(alignment: .leading) {
-					Text(page.title)
-						.font(.caption2)
-						.foregroundStyle(.secondary)
-					Text(page.value)
-						.font(.headline.monospacedDigit())
+
+	var body: some View {
+		ZStack(alignment: .topLeading) {
+			seaBackdrop
+			MultiPagePill(pageCount: pages.count) { index in
+				let page = pages[index]
+				HStack(spacing: 8) {
+					Image(systemName: page.systemImage)
+						.font(.title3)
+					VStack(alignment: .leading) {
+						Text(page.title)
+							.font(.caption2)
+							.foregroundStyle(.secondary)
+						Text(page.value)
+							.font(.headline.monospacedDigit())
+					}
 				}
 			}
+			.padding()
 		}
-		.padding()
 	}
+}
+
+#Preview("Three pages — boat read-out HUD") {
+	ReadoutHUDPreview()
 }
 
 #Preview("Centred over a map corner") {

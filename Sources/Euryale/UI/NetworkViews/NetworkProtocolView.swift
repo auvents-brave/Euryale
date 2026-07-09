@@ -8,6 +8,7 @@ public enum NetworkProtocol: String, CaseIterable, Hashable, Identifiable {
 	case udpBroadcast = "UDP Broadcast"
 	case udpMulticast = "UDP Multicast"
 
+	/// Stable identity, derived from the raw value.
 	public var id: String { rawValue }
 
 	/// Whether this protocol uses broadcast addressing (disables the address field).
@@ -74,6 +75,7 @@ public struct NetworkProtocolView: View {
 
 	// MARK: Body
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		VStack(alignment: .leading, spacing: 12) {
 			protocolRow
@@ -87,7 +89,7 @@ public struct NetworkProtocolView: View {
 
 	// MARK: Protocol picker / label
 
-	@ViewBuilder
+	@ContentBuilder
 	private var protocolRow: some View {
 		// A single protocol means there's nothing to choose — show no row.
 		if available.count > 1 {

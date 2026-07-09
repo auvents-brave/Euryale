@@ -58,6 +58,7 @@ public struct IconLabel: View {
 
 	// MARK: Body
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		HStack(spacing: spacing) {
 			Image(systemName: systemImage)

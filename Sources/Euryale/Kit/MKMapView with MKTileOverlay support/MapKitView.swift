@@ -253,6 +253,7 @@ struct MapViewConfiguration {
 
 		// MARK: Body
 
+		/// The content and behaviour of the view.
 		public var body: some View {
 			if #available(watchOS 12, *) {
 				Map(position: $viewModel.position, interactionModes: config.isInteractive ? .all : []) {

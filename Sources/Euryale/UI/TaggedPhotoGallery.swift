@@ -10,12 +10,18 @@ public import SwiftUI
 /// `Sendable`, so it crosses actor boundaries freely — the classification work
 /// can run off the main actor and the result hand back to a `@MainActor` view.
 public struct TaggedPhoto: Identifiable, Sendable, Hashable {
+	/// Stable identity for the photo.
 	public let id: UUID
 	/// The encoded image (PNG / JPEG / HEIC bytes).
 	public let imageData: Data
 	/// Classification labels keyed by identifier, with `0.0 ... 1.0` confidence.
 	public let tags: [String: Double]
 
+	/// Creates a tagged photo.
+	/// - Parameters:
+	///   - id: Stable identity (defaults to a fresh `UUID`).
+	///   - imageData: The encoded image bytes.
+	///   - tags: Classification labels keyed by identifier, with confidence.
 	public init(id: UUID = UUID(), imageData: Data, tags: [String: Double] = [:]) {
 		self.id = id
 		self.imageData = imageData
@@ -79,6 +85,7 @@ public struct TaggedPhotoGallery: View {
 		self.minimumConfidence = minimumConfidence
 	}
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		PaginatedView(pages: photos) { photo in
 			// The image is bounded to the page (both dimensions) and fitted, so the

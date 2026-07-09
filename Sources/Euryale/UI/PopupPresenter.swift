@@ -46,8 +46,8 @@ public struct PopupPresenter<Trigger: View, PresentedContent: View>: View {
 	public init(
 		regularWidth: CGFloat? = nil,
 		regularHeight: CGFloat? = nil,
-		@ViewBuilder trigger: @escaping () -> Trigger,
-		@ViewBuilder presentedContent: @escaping () -> PresentedContent
+		@ContentBuilder trigger: @escaping () -> Trigger,
+		@ContentBuilder presentedContent: @escaping () -> PresentedContent
 	) {
 		self.regularWidth = regularWidth ?? Self.defaultRegularWidth
 		self.regularHeight = regularHeight ?? Self.defaultRegularHeight
@@ -57,6 +57,7 @@ public struct PopupPresenter<Trigger: View, PresentedContent: View>: View {
 
 	// MARK: Body
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		Button {
 			isPresented = true
@@ -128,7 +129,7 @@ extension View {
 	public func popupPresentation<PopupContent: View>(
 		isPresented: Binding<Bool>,
 		backgroundInteraction: Bool = false,
-		@ViewBuilder content: @escaping () -> PopupContent
+		@ContentBuilder content: @escaping () -> PopupContent
 	) -> some View {
 		#if os(tvOS) || os(watchOS)
 			sheet(isPresented: isPresented) { content() }
@@ -150,7 +151,7 @@ extension View {
 		item: Binding<Item?>,
 		anchorPoint: UnitPoint? = nil,
 		backgroundInteraction: Bool = false,
-		@ViewBuilder content: @escaping (Item) -> PopupContent
+		@ContentBuilder content: @escaping (Item) -> PopupContent
 	) -> some View {
 		#if os(tvOS) || os(watchOS)
 			sheet(item: item) { content($0) }
@@ -164,7 +165,7 @@ extension View {
 
 /// Applies the compact-width sheet behaviour shared by both popup entry points.
 /// Internal (not private) so it can be unit-tested directly.
-@ViewBuilder
+@ContentBuilder
 func popupAdapted(_ content: some View, backgroundInteraction: Bool) -> some View {
 	#if os(iOS)
 		content

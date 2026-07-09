@@ -154,6 +154,7 @@ private struct HelpManifest: Decodable {
 				title: title,
 				keywords: keywords ?? [],
 				body: body,
+				file: file,
 				children: try (children ?? []).map { try $0.resolve(in: localeURL) }
 			)
 		}

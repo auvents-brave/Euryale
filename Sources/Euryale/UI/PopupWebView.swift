@@ -41,6 +41,7 @@ public struct PopupWebView: View {
 
 	// MARK: Body
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		#if os(watchOS)
 			Link(title ?? url.absoluteString, destination: url)

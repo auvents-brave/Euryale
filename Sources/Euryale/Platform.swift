@@ -1,79 +1,63 @@
-/// Cross-platform typealiases that resolve to the native equivalent on each
-/// Apple OS.  Use these in code shared between iOS / iPadOS / tvOS / watchOS /
-/// visionOS / Mac Catalyst / macOS to avoid platform-conditional `#if` blocks
-/// at every reference site.
-///
-/// | Type alias        | watchOS         | iOS / tvOS / Catalyst / vision | macOS         |
-/// |-------------------|-----------------|--------------------------------|---------------|
-/// | ``PlatformApplication`` | `WKExtension`   | `UIApplication`                | `NSApplication` |
-/// | ``PlatformDelegate``    | `NSObject`      | `UIResponder`                  | `NSObject`    |
-/// | ``PlatformView``        | *unavailable*   | `UIView`                       | `NSView`      |
-/// | ``PlatformColor``       | `UIColor`       | `UIColor`                      | `NSColor`     |
-/// | ``PlatformImage``       | `UIImage`       | `UIImage`                      | `NSImage`     |
-/// | ``PlatformFont``        | `UIFont`        | `UIFont`                       | `NSFont`      |
-///
-/// Use ``PlatformApplication/platformShared`` to access the singleton application
-/// instance without writing platform branches:
-///
-/// ```swift
-/// PlatformApplication.platformShared.openURL(url)
-/// ```
-
 import Foundation
 
 // MARK: - Per-platform typealiases
 
 #if canImport(WatchKit)
-	public import WatchKit  // WKExtension and UIColor/UIImage/UIFont used in public typealiases
+	public import WatchKit
 
-	/// Singleton-style application class — `WKExtension` on watchOS.
+	/// The platform's application type — `WKApplication` on watchOS.
 	public typealias PlatformApplication = WKApplication
-	/// Native colour type — `UIColor` on watchOS.
+	/// The platform's colour type — `UIColor` on watchOS.
 	public typealias PlatformColor = UIColor
-	/// Native image type — `UIImage` on watchOS.
+	/// The platform's image type — `UIImage` on watchOS.
 	public typealias PlatformImage = UIImage
-	/// Native font type — `UIFont` on watchOS.
+	/// The platform's font type — `UIFont` on watchOS.
 	public typealias PlatformFont = UIFont
-	/// Base class for delegate types — `NSObject` on watchOS (WatchKit
-	/// delegates such as `WKApplicationDelegate` inherit from `NSObject`;
-	/// there is no `UIResponder` on this platform).
+	/// The platform's app-delegate base type — `NSObject` on watchOS.
 	public typealias PlatformDelegate = NSObject
 
 #elseif canImport(UIKit)
-	public import UIKit  // UIApplication/UIView/UIColor/UIImage/UIFont used in public typealiases
+	public import UIKit
+	public import SwiftUI
 
-	/// Singleton-style application class — `UIApplication` on UIKit platforms.
+	/// The platform's application type — `UIApplication` on UIKit platforms.
 	public typealias PlatformApplication = UIApplication
-	/// Native view type — `UIView` on UIKit platforms.
+	/// The platform's view type — `UIView` on UIKit platforms.
 	public typealias PlatformView = UIView
-	/// Native colour type — `UIColor` on UIKit platforms.
+	/// The platform's colour type — `UIColor` on UIKit platforms.
 	public typealias PlatformColor = UIColor
-	/// Native image type — `UIImage` on UIKit platforms.
+	/// The platform's image type — `UIImage` on UIKit platforms.
 	public typealias PlatformImage = UIImage
-	/// Native font type — `UIFont` on UIKit platforms.
+	/// The platform's font type — `UIFont` on UIKit platforms.
 	public typealias PlatformFont = UIFont
-	/// Base class for delegate types — `UIResponder` on UIKit platforms
-	/// (iOS / iPadOS / tvOS / Mac Catalyst / visionOS), so delegate classes
-	/// can participate in the UIKit responder chain when appropriate.
+	/// The platform's app-delegate base type — `UIResponder` on UIKit platforms.
 	public typealias PlatformDelegate = UIResponder
+	/// The platform's view-controller type — `UIViewController` on UIKit platforms.
+	public typealias PlatformViewController = UIViewController
+	/// The platform's SwiftUI hosting controller — `UIHostingController` on UIKit platforms.
+	public typealias PlatformHostingController = UIHostingController
 
 #elseif canImport(AppKit)
-	public import AppKit  // NSApplication/NSView/NSColor/NSImage/NSFont used in public typealiases
+	public import AppKit
+	public import SwiftUI
 
-	/// Singleton-style application class — `NSApplication` on macOS.
+	/// The platform's application type — `NSApplication` on AppKit platforms.
 	public typealias PlatformApplication = NSApplication
-	/// Native view type — `NSView` on macOS.
+	/// The platform's view type — `NSView` on AppKit platforms.
 	public typealias PlatformView = NSView
-	/// Native colour type — `NSColor` on macOS.
+	/// The platform's colour type — `NSColor` on AppKit platforms.
 	public typealias PlatformColor = NSColor
-	/// Native image type — `NSImage` on macOS.
+	/// The platform's image type — `NSImage` on AppKit platforms.
 	public typealias PlatformImage = NSImage
-	/// Native font type — `NSFont` on macOS.
+	/// The platform's font type — `NSFont` on AppKit platforms.
 	public typealias PlatformFont = NSFont
-	/// Base class for delegate types — `NSObject` on macOS (AppKit delegate
-	/// protocols such as `NSApplicationDelegate` are conformed by classes
-	/// that inherit from `NSObject`).
+	/// The platform's app-delegate base type — `NSObject` on AppKit platforms.
 	public typealias PlatformDelegate = NSObject
+
+	/// The platform's view-controller type — `NSViewController` on AppKit platforms.
+	public typealias PlatformViewController = NSViewController
+	/// The platform's SwiftUI hosting controller — `NSHostingController` on AppKit platforms.
+	public typealias PlatformHostingController = NSHostingController
 #endif
 
 // MARK: - Shared extension on PlatformApplication
@@ -89,6 +73,7 @@ import Foundation
 /// PlatformApplication.platformShared.openURL(url)
 /// ```
 extension PlatformApplication {
+	/// The platform's shared application instance, resolved per platform.
 	public static var platformShared: PlatformApplication {
 		#if canImport(WatchKit)
 			shared()

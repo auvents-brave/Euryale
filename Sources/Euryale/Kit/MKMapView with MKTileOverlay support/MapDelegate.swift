@@ -160,12 +160,15 @@
 		// the touch lands on a marker (so tapping a marker selects it rather than
 		// dropping a route point).
 		extension MapDelegate: UIGestureRecognizerDelegate {
+			/// Ignores touches that land on a marker so they select the marker
+			/// rather than drop a map-tap point.
 			public func gestureRecognizer(
 				_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch
 			) -> Bool {
 				!(touch.view is MKAnnotationView) && !(touch.view?.superview is MKAnnotationView)
 			}
 
+			/// Lets the map-tap recogniser fire alongside MapKit's own gestures.
 			public func gestureRecognizer(
 				_ gestureRecognizer: UIGestureRecognizer,
 				shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer

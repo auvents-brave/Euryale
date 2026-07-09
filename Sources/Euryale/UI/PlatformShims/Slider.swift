@@ -70,6 +70,7 @@
 
 		// MARK: Body
 
+		/// The content and behaviour of the view.
 		public var body: some View {
 			HStack(spacing: 20) {
 				Image(systemName: "chevron.left")

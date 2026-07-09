@@ -85,6 +85,7 @@ public struct StatusPill: View {
 
 	// MARK: Body
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		HStack(spacing: 6) {
 			Image(systemName: status.symbolName)

@@ -50,6 +50,7 @@
 
 		// MARK: Body
 
+		/// The content and behaviour of the view.
 		public var body: some View {
 			WrapperView(view: mtkView)
 				.ignoresSafeArea()

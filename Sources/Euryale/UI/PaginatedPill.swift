@@ -77,7 +77,7 @@ public struct PaginatedView<Page: Identifiable, Content: View>: View {
 	/// Whether this view installs its own tvOS focus handling. ``PaginatedPill``
 	/// sets this to `false` and installs focus on the outer (chromed) view.
 	private let managesFocus: Bool
-	@ViewBuilder private let content: (Page) -> Content
+	@ContentBuilder private let content: (Page) -> Content
 
 	/// The page index, routed to the wrapper's binding when embedded.
 	private var currentIndex: Binding<Int> { externalIndex ?? $internalIndex }
@@ -109,7 +109,7 @@ public struct PaginatedView<Page: Identifiable, Content: View>: View {
 		indicatorAlignment: Alignment = .bottomTrailing,
 		accentColor: Color? = nil,
 		onSelect: (() -> Void)? = nil,
-		@ViewBuilder content: @escaping (Page) -> Content
+		@ContentBuilder content: @escaping (Page) -> Content
 	) {
 		self.pages = pages
 		self.style = style
@@ -129,7 +129,7 @@ public struct PaginatedView<Page: Identifiable, Content: View>: View {
 		indicatorAlignment: Alignment,
 		accentColor: Color?,
 		index: Binding<Int>,
-		@ViewBuilder content: @escaping (Page) -> Content
+		@ContentBuilder content: @escaping (Page) -> Content
 	) {
 		self.pages = pages
 		self.style = style
@@ -141,6 +141,7 @@ public struct PaginatedView<Page: Identifiable, Content: View>: View {
 		self.content = content
 	}
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		let paginator =
 			Group {
@@ -202,7 +203,7 @@ public struct PaginatedView<Page: Identifiable, Content: View>: View {
 
 	// MARK: Layouts
 
-	@ViewBuilder
+	@ContentBuilder
 	private var overlayLayout: some View {
 		pageStack
 			.frame(maxWidth: .infinity, alignment: .leading)
@@ -214,7 +215,7 @@ public struct PaginatedView<Page: Identifiable, Content: View>: View {
 			}
 	}
 
-	@ViewBuilder
+	@ContentBuilder
 	private var stackedLayout: some View {
 		VStack(spacing: 10) {
 			pageStack
@@ -235,7 +236,7 @@ public struct PaginatedView<Page: Identifiable, Content: View>: View {
 
 	// MARK: Page content (cross-fade)
 
-	@ViewBuilder
+	@ContentBuilder
 	private var pageStack: some View {
 		ZStack(alignment: .leading) {
 			ForEach(Array(pages.enumerated()), id: \.element.id) { index, page in
@@ -269,7 +270,7 @@ public struct PaginatedView<Page: Identifiable, Content: View>: View {
 
 	// MARK: Indicator dots
 
-	@ViewBuilder
+	@ContentBuilder
 	private var indicatorRow: some View {
 		HStack(spacing: PillMetrics.indicatorSpacing) {
 			ForEach(pages.indices, id: \.self) { index in
@@ -278,7 +279,7 @@ public struct PaginatedView<Page: Identifiable, Content: View>: View {
 		}
 	}
 
-	@ViewBuilder
+	@ContentBuilder
 	private func indicatorButton(for index: Int) -> some View {
 		#if os(tvOS)
 			// Non-interactive on tvOS: a focusable Button here would steal focus
@@ -300,7 +301,7 @@ public struct PaginatedView<Page: Identifiable, Content: View>: View {
 		#endif
 	}
 
-	@ViewBuilder
+	@ContentBuilder
 	private func indicatorShape(isActive: Bool) -> some View {
 		let size: CGFloat = isActive ? PillMetrics.indicatorActiveSize : PillMetrics.indicatorInactiveSize
 
@@ -372,7 +373,7 @@ public struct PaginatedPill<Page: Identifiable, Content: View>: View {
 	private let indicatorAlignment: Alignment
 	private let accentColor: Color?
 	private let onSelect: (() -> Void)?
-	@ViewBuilder private let content: (Page) -> Content
+	@ContentBuilder private let content: (Page) -> Content
 
 	/// The page index lives here (not in the embedded ``PaginatedView``) so the
 	/// tvOS focus chrome can scale the whole chromed pill, background included,
@@ -387,7 +388,7 @@ public struct PaginatedPill<Page: Identifiable, Content: View>: View {
 		indicatorAlignment: Alignment = .bottomTrailing,
 		accentColor: Color? = nil,
 		onSelect: (() -> Void)? = nil,
-		@ViewBuilder content: @escaping (Page) -> Content
+		@ContentBuilder content: @escaping (Page) -> Content
 	) {
 		self.pages = pages
 		self.style = style
@@ -397,6 +398,7 @@ public struct PaginatedPill<Page: Identifiable, Content: View>: View {
 		self.content = content
 	}
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		PaginatedView(
 			pages: pages,
@@ -446,19 +448,22 @@ public struct PaginatedPill<Page: Identifiable, Content: View>: View {
 
 // MARK: - Previews
 
+/// Sample data shared by the room previews.
+private struct Room: Identifiable {
+	let id = UUID()
+	let name: String
+	let count: Int
+}
+
+private let sampleRooms = [
+	Room(name: "Bedrooms", count: 3),
+	Room(name: "Bathrooms", count: 2),
+	Room(name: "Garage", count: 1),
+]
+
 #Preview("Overlay — Pills") {
-	struct Room: Identifiable {
-		let id = UUID()
-		let name: String
-		let count: Int
-	}
-	let rooms = [
-		Room(name: "Bedrooms", count: 3),
-		Room(name: "Bathrooms", count: 2),
-		Room(name: "Garage", count: 1),
-	]
-	return VStack {
-		PaginatedPill(pages: rooms) { room in
+	VStack {
+		PaginatedPill(pages: sampleRooms) { room in
 			Pill(label: room.name, value: room.count)
 		}
 		Spacer()
@@ -466,69 +471,66 @@ public struct PaginatedPill<Page: Identifiable, Content: View>: View {
 	.padding()
 }
 
-#Preview("Overlay — mixed content (icon, photo, status)") {
-	// Each page has a totally different content type to stress the
-	// generic ViewBuilder + full-bleed overlay layout.
+/// Preview host: each page has a totally different content type to stress the
+/// generic ViewBuilder + full-bleed overlay layout.
+private struct MixedContentPreview: View {
 	enum Pane: Identifiable {
 		case icon, photo, status
 		var id: String { "\(self)" }
 	}
-	return VStack {
-		PaginatedPill(pages: [Pane.icon, .photo, .status]) { pane in
-			switch pane {
-			case .icon:
-				ZStack {
-					LinearGradient(
-						colors: [.blue, .purple],
-						startPoint: .topLeading, endPoint: .bottomTrailing
-					)
-					Image(systemName: "house.fill")
-						.font(.system(size: 48, weight: .bold))
-						.foregroundStyle(.white)
-				}
-				.frame(maxWidth: .infinity)
-				.frame(height: 140)
-				.clipShape(RoundedRectangle(cornerRadius: 6))
 
-			case .photo:
-				AsyncImage(url: URL(string: "https://picsum.photos/seed/euryale/640/280")) { image in
-					image.resizable().scaledToFill()
-				} placeholder: {
-					Color.gray.opacity(0.3)
-				}
-				.frame(maxWidth: .infinity)
-				.frame(height: 140)
-				.clipped()
-				.clipShape(RoundedRectangle(cornerRadius: 6))
+	var body: some View {
+		VStack {
+			PaginatedPill(pages: [Pane.icon, .photo, .status]) { pane in
+				switch pane {
+				case .icon:
+					ZStack {
+						LinearGradient(
+							colors: [.blue, .purple],
+							startPoint: .topLeading, endPoint: .bottomTrailing
+						)
+						Image(systemName: "house.fill")
+							.font(.system(size: 48, weight: .bold))
+							.foregroundStyle(.white)
+					}
+					.frame(maxWidth: .infinity)
+					.frame(height: 140)
+					.clipShape(RoundedRectangle(cornerRadius: 6))
 
-			case .status:
-				VStack(spacing: 6) {
-					StatusPill(label: "Sync complete", status: .ok)
-					StatusPill(label: "1 item pending", status: .warning)
+				case .photo:
+					AsyncImage(url: URL(string: "https://picsum.photos/seed/euryale/640/280")) { image in
+						image.resizable().scaledToFill()
+					} placeholder: {
+						Color.gray.opacity(0.3)
+					}
+					.frame(maxWidth: .infinity)
+					.frame(height: 140)
+					.clipped()
+					.clipShape(RoundedRectangle(cornerRadius: 6))
+
+				case .status:
+					VStack(spacing: 6) {
+						StatusPill(label: "Sync complete", status: .ok)
+						StatusPill(label: "1 item pending", status: .warning)
+					}
+					.frame(maxWidth: .infinity)
+					.frame(height: 140)
 				}
-				.frame(maxWidth: .infinity)
-				.frame(height: 140)
 			}
+			Spacer()
 		}
-		Spacer()
+		.padding()
 	}
-	.padding()
+}
+
+#Preview("Overlay — mixed content (icon, photo, status)") {
+	MixedContentPreview()
 }
 
 #Preview("Stacked — classic, center dots") {
-	struct Room: Identifiable {
-		let id = UUID()
-		let name: String
-		let count: Int
-	}
-	let rooms = [
-		Room(name: "Bedrooms", count: 3),
-		Room(name: "Bathrooms", count: 2),
-		Room(name: "Garage", count: 1),
-	]
-	return VStack {
+	VStack {
 		PaginatedPill(
-			pages: rooms,
+			pages: sampleRooms,
 			style: .stacked,
 			indicatorAlignment: .center
 		) { room in

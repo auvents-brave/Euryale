@@ -32,14 +32,15 @@
 		///   - label: The always-visible label that toggles expansion.
 		public init(
 			isExpanded: Binding<Bool>,
-			@ViewBuilder content: @escaping () -> Content,
-			@ViewBuilder label: @escaping () -> Label
+			@ContentBuilder content: @escaping () -> Content,
+			@ContentBuilder label: @escaping () -> Label
 		) {
 			_isExpanded = isExpanded
 			self.content = content
 			self.label = label
 		}
 
+		/// The content and behaviour of the view.
 		public var body: some View {
 			VStack(alignment: .leading, spacing: 8) {
 				Button {

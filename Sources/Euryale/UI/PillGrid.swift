@@ -21,17 +21,18 @@ public struct PillGrid<Data: RandomAccessCollection, Content: View>: View
 where Data.Element: Identifiable {
 
 	private let data: Data
-	@ViewBuilder private let content: (Data.Element) -> Content
+	@ContentBuilder private let content: (Data.Element) -> Content
 
 	/// Creates a pill grid.
 	/// - Parameters:
 	///   - data: The identifiable items, one pill cell per element.
 	///   - content: Builds the cell for a given element.
-	public init(_ data: Data, @ViewBuilder content: @escaping (Data.Element) -> Content) {
+	public init(_ data: Data, @ContentBuilder content: @escaping (Data.Element) -> Content) {
 		self.data = data
 		self.content = content
 	}
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		LazyVGrid(
 			columns: [GridItem(.adaptive(minimum: PillMetrics.gridMinimum), spacing: PillMetrics.gridSpacing)],

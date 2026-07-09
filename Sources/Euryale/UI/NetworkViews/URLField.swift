@@ -28,6 +28,7 @@ public struct URLField: View {
 		self.schemes = schemes
 	}
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		HStack {
 			TextField(placeholder, text: $text)

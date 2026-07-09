@@ -18,6 +18,11 @@ public struct HelpTopic: Identifiable, Hashable, Sendable {
 	/// The Markdown body rendered in the detail pane.
 	public let body: String
 
+	/// The Markdown file name the body was loaded from (e.g. `connecting.md`),
+	/// so relative links between articles can be resolved back to a topic.
+	/// `nil` for in-memory topics.
+	public let file: String?
+
 	/// Child topics nested beneath this one in the navigation tree.
 	public let children: [HelpTopic]
 
@@ -27,18 +32,22 @@ public struct HelpTopic: Identifiable, Hashable, Sendable {
 	///   - title: Localised title shown to the reader.
 	///   - keywords: Additional search terms. Defaults to none.
 	///   - body: Markdown body text.
+	///   - file: Source file name, for resolving inter-article links. Defaults
+	///     to `nil`.
 	///   - children: Nested child topics. Defaults to none.
 	public init(
 		id: String,
 		title: String,
 		keywords: [String] = [],
 		body: String,
+		file: String? = nil,
 		children: [HelpTopic] = []
 	) {
 		self.id = id
 		self.title = title
 		self.keywords = keywords
 		self.body = body
+		self.file = file
 		self.children = children
 	}
 

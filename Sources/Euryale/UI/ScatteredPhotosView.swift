@@ -53,6 +53,7 @@ public struct ScatteredPhotosView: View {
 		self.curl = curl
 	}
 
+	/// The content and behaviour of the view.
 	public var body: some View {
 		GeometryReader { proxy in
 			let minSide = min(proxy.size.width, proxy.size.height)
