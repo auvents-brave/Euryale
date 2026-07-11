@@ -100,8 +100,12 @@ private var seaBackdrop: some View {
 
 /// Preview host: a three-page boat read-out HUD.
 private struct ReadoutHUDPreview: View {
+	/// Sample data only — plain `String`, not `LocalizedStringKey`, so it never
+	/// lands in the shipped String Catalog (Xcode still extracts strings used
+	/// inside `#Preview` bodies even though they never reach the App Store
+	/// build).
 	struct Readout {
-		let title: LocalizedStringKey
+		let title: String
 		let value: String
 		let systemImage: String
 	}
@@ -121,7 +125,7 @@ private struct ReadoutHUDPreview: View {
 					Image(systemName: page.systemImage)
 						.font(.title3)
 					VStack(alignment: .leading) {
-						Text(page.title)
+						Text(verbatim: page.title)
 							.font(.caption2)
 							.foregroundStyle(.secondary)
 						Text(page.value)

@@ -197,22 +197,22 @@ import SwiftUI
 		// MARK: - Web-mercator maths
 
 		/// A zoom whose tile resolution roughly matches the requested pixel size.
-		private static func zoom(for region: MKCoordinateRegion, width: CGFloat) -> Int {
+		static func zoom(for region: MKCoordinateRegion, width: CGFloat) -> Int {
 			let ideal = log2(360.0 / max(region.span.longitudeDelta, 0.0001) * Double(width) / 256.0)
 			return min(17, max(2, Int(ideal.rounded())))
 		}
 
-		private static func tileX(_ longitude: Double, n: Int) -> Int {
+		static func tileX(_ longitude: Double, n: Int) -> Int {
 			Int(floor((longitude + 180) / 360 * Double(n)))
 		}
 
-		private static func tileY(_ latitude: Double, n: Int) -> Int {
+		static func tileY(_ latitude: Double, n: Int) -> Int {
 			let radians = latitude * .pi / 180
 			let y = (1 - log(tan(radians) + 1 / cos(radians)) / .pi) / 2
 			return Int(floor(y * Double(n)))
 		}
 
-		private static func tileCorner(x: Int, y: Int, n: Int) -> CLLocationCoordinate2D {
+		static func tileCorner(x: Int, y: Int, n: Int) -> CLLocationCoordinate2D {
 			let longitude = Double(x) / Double(n) * 360 - 180
 			let latitude = atan(sinh(.pi * (1 - 2 * Double(y) / Double(n)))) * 180 / .pi
 			return CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
@@ -220,7 +220,7 @@ import SwiftUI
 
 		/// Maps coordinates to view points for a tile-based base: the world's
 		/// mercator pixel grid at `zoom`, recentred on the region's centre.
-		private static func mercatorProjector(
+		static func mercatorProjector(
 			region: MKCoordinateRegion, size: CGSize, zoom: Int
 		) -> (CLLocationCoordinate2D) -> CGPoint {
 			let world = Double(256 * (1 << zoom))
