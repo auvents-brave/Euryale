@@ -18,8 +18,9 @@ extension CLLocation {
 
 	/// Returns the name of the location using reverse geocoding.
 	///
-	/// On macOS 26+ and iOS 26+, this uses the modern `PlaceDescriptor` API to extract
-	/// the first line of the address. On older systems, it falls back to `CLPlacemark.name`.
+	/// On macOS 26+ and iOS 26+, this uses `MKReverseGeocodingRequest`; on older
+	/// systems it falls back to `CLGeocoder`. Both read the same field, so the
+	/// two paths name a place alike.
 	///
 	/// - Returns: The name of the location, or an empty string if geocoding fails or no name is available.
 	///
@@ -31,10 +32,8 @@ extension CLLocation {
 	/// ```
 	public func Name() async -> String {
 		if #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
-			guard let descriptor = await ReverseGeocode26(), let address = descriptor.address,
-				let first = address.components(separatedBy: .newlines).first
-			else { return "" }
-			return first
+			guard let item = await ReverseGeocode26() else { return "" }
+			return item.name ?? ""
 		} else {
 			guard let mark = await ReverseGeocode00() else { return "" }
 			return mark.name ?? ""
@@ -100,18 +99,21 @@ extension CLLocation {
 
 	/// Performs reverse geocoding using the modern `MKReverseGeocodingRequest` API.
 	///
-	/// This method uses the newer MapKit reverse geocoding API available in macOS 26+ and iOS 26+,
-	/// which returns a `PlaceDescriptor` that can be used across different mapping services.
+	/// - Returns: The best-matching `MKMapItem`, or `nil` if geocoding fails.
 	///
-	/// - Returns: A `PlaceDescriptor` for the location, or `nil` if geocoding fails.
+	/// > Important: Do **not** turn the result into a `PlaceDescriptor` with
+	/// > `PlaceDescriptor(item:)` here. That initialiser is declared in MapKit
+	/// > as `@available(iOS 26.0, …)`, but it is absent from the iOS 26.5
+	/// > runtime: built against a newer SDK it becomes a weak import, dyld binds
+	/// > it to null, and calling it jumps to address 0 — a crash the kernel
+	/// > reports as `CODESIGNING 2 Invalid Page`, with an availability check
+	/// > that passed. Everything this needs is on the map item itself, so the
+	/// > mis-annotated symbol is simply not called.
 	@available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
-	fileprivate func ReverseGeocode26() async -> PlaceDescriptor? {
+	fileprivate func ReverseGeocode26() async -> MKMapItem? {
 		let request = MKReverseGeocodingRequest(location: self)
 		do {
-			guard let mapItems = try await request?.mapItems, let firstItem = mapItems.first else {
-				return nil
-			}
-			return PlaceDescriptor(item: firstItem)
+			return try await request?.mapItems.first
 		} catch {
 			Logger(label: "").error(
 				"Reverse geocoding failed", metadata: ["error": "\(error.localizedDescription)"])
@@ -200,42 +202,20 @@ extension CLLocation {
 				print("  - Time Zone: N/A")
 			}
 
-			guard let descriptor = await data.0.ReverseGeocode26() else {
+			guard let item = await data.0.ReverseGeocode26() else {
 				print("  - Reverse geocoding failed")
 				return
 			}
-			print("Full PlaceDescriptor Details:")
-			print("  - Common Name: \(descriptor.commonName ?? "N/A")")
+			print("Full MKMapItem Details:")
+			print("  - Name: \(item.name ?? "N/A")")
+			print("  - Ocean: \(item.placemark.ocean ?? "N/A")")
+			print("  - Inland Water: \(item.placemark.inlandWater ?? "N/A")")
+			let coordinate = item.placemark.coordinate
+			print("  - Location: \(coordinate.latitude), \(coordinate.longitude)")
 
-			if let coordinate = descriptor.coordinate {
-				print("  - Descriptor Location: \(coordinate.latitude), \(coordinate.longitude)")
-			}
-
-			if let address = descriptor.address {
-				print("  - Address: \(address)")
-			}
-
-			print("  - Description: \(descriptor.description)")  // starting OS 26.4
-
-			print(
-				"  - Supporting Representations: \(descriptor.supportingRepresentations.count) available")
-			for rep in descriptor.supportingRepresentations {
-				print("    • \(rep)")
-			}
-
-			print("  - Representations: \(descriptor.representations.count) available")
-			for rep in descriptor.representations {
-				switch rep {
-				case .coordinate(let coord):
-					print("    • Coordinate: \(coord.latitude), \(coord.longitude)")
-				case .address(let addr):
-					print("    • Address: \(addr)")
-				case .deviceLocation(let device):
-					print("    • Device: \(device)")
-				@unknown default:
-					print("    • Unknown representation")
-				}
-			}
+			// `PlaceDescriptor(item:)` is deliberately absent: see the note on
+			// ReverseGeocode26. It is annotated iOS 26.0 but missing from the
+			// 26.5 runtime, and calling it jumps to a null address.
 
 			print("")  // Blank line between entries
 		}
