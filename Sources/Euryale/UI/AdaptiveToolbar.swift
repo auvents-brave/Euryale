@@ -588,6 +588,44 @@ public struct ToolbarActionMenu: View {
 	}
 }
 
+// MARK: - ToolbarActionButton
+
+/// Renders a ``ToolbarAction`` as a **native** toolbar button (default button
+/// style), so the host window/navigation toolbar draws its own OS-26 Liquid Glass
+/// chrome — unlike ``AdaptiveToolbar``, which paints a custom capsule. Place inside
+/// a `ToolbarItem`/`ToolbarItemGroup`. Honours the `.destructive` role, the enabled
+/// state, and (on macOS) `opensSettings` via `SettingsLink`.
+public struct ToolbarActionButton: View {
+
+	private let action: ToolbarAction
+
+	/// Creates a native toolbar button for the given action.
+	public init(_ action: ToolbarAction) {
+		self.action = action
+	}
+
+	/// The content and behaviour of the view.
+	public var body: some View {
+		#if os(macOS)
+			if action.opensSettings {
+				SettingsLink { Label(action.title, systemImage: action.systemImage) }
+					.disabled(!action.isEnabled)
+			} else {
+				button
+			}
+		#else
+			button
+		#endif
+	}
+
+	private var button: some View {
+		Button(role: action.role, action: action.action) {
+			Label(action.title, systemImage: action.systemImage)
+		}
+		.disabled(!action.isEnabled)
+	}
+}
+
 // MARK: - ToolbarMenuBar
 
 /// A compact floating control bar: a leading "⋯" menu of `menuActions` followed by
