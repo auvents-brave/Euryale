@@ -588,6 +588,43 @@ public struct ToolbarActionMenu: View {
 	}
 }
 
+// MARK: - ToolbarMenuBar
+
+/// A compact floating control bar: a leading "⋯" menu of `menuActions` followed by
+/// `trailingActions` as inline icon buttons, wrapped in the same glass capsule as
+/// ``AdaptiveToolbar``. Space-stable — the menu absorbs extra actions without the
+/// bar growing — while a few key actions stay one tap (e.g. Settings kept last,
+/// outside the menu). Not shown on watchOS (no `Menu`).
+public struct ToolbarMenuBar: View {
+
+	private let menuActions: [ToolbarAction]
+	private let trailingActions: [ToolbarAction]
+
+	/// Creates a menu bar.
+	/// - Parameters:
+	///   - menuActions: Actions gathered into the leading "⋯" menu.
+	///   - trailingActions: Actions shown as inline icon buttons after the menu.
+	public init(menu menuActions: [ToolbarAction], trailing trailingActions: [ToolbarAction]) {
+		self.menuActions = menuActions
+		self.trailingActions = trailingActions
+	}
+
+	/// The content and behaviour of the view.
+	public var body: some View {
+		HStack(spacing: 8) {
+			if !menuActions.isEmpty {
+				ToolbarActionMenu(menuActions)
+			}
+			ForEach(trailingActions) { action in
+				ToolbarButton(action: action, iconOnly: true)
+			}
+		}
+		.padding(.horizontal, 12)
+		.padding(.vertical, 6)
+		.modifier(GlassCapsuleBackground())
+	}
+}
+
 // MARK: - GlassCapsuleBackground
 
 /// Wraps the toolbar in a Liquid Glass capsule where available, otherwise an
