@@ -545,6 +545,49 @@ private struct OverflowButton: View {
 	}
 #endif
 
+// MARK: - ToolbarActionMenu
+
+/// A single "⋯" (ellipsis) menu gathering several ``ToolbarAction``s into one
+/// native `Menu` — for tight hosts such as an iPhone navigation bar, where a row
+/// of icons is too busy. Each action becomes a menu row; a `.destructive` role is
+/// shown in red and disabled actions are dimmed. Share and `opensSettings`
+/// behaviours are not reproduced here (the plain `action` runs), so it suits
+/// command actions rather than share links.
+public struct ToolbarActionMenu: View {
+
+	private let actions: [ToolbarAction]
+	private let systemImage: String
+
+	/// Creates an ellipsis menu from the given actions, listed in order.
+	/// - Parameters:
+	///   - actions: The actions to offer in the menu.
+	///   - systemImage: The menu's own glyph (defaults to `ellipsis.circle`).
+	public init(_ actions: [ToolbarAction], systemImage: String = "ellipsis.circle") {
+		self.actions = actions
+		self.systemImage = systemImage
+	}
+
+	/// The content and behaviour of the view.
+	public var body: some View {
+		#if os(watchOS)
+			// `Menu` is unavailable on watchOS; this control has no watch use.
+			EmptyView()
+		#else
+			Menu {
+				ForEach(actions) { action in
+					Button(role: action.role, action: action.action) {
+						Label(action.title, systemImage: action.systemImage)
+					}
+					.disabled(!action.isEnabled)
+				}
+			} label: {
+				Image(systemName: systemImage)
+					.accessibilityLabel(Text("More", bundle: .module))
+			}
+		#endif
+	}
+}
+
 // MARK: - GlassCapsuleBackground
 
 /// Wraps the toolbar in a Liquid Glass capsule where available, otherwise an
