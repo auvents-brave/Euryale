@@ -601,3 +601,79 @@ private struct GlassCapsuleBackground: ViewModifier {
 		.padding()
 	}
 #endif
+
+// MARK: - Native system toolbar (OS 26 Liquid Glass)
+
+#if os(iOS) || os(visionOS)
+	/// The action groups rendered as **native** SwiftUI bottom-bar toolbar
+	/// content, so OS 26 draws its real Liquid Glass toolbar (adaptive tint,
+	/// morphing, scroll-edge effect) instead of the custom floating capsule.
+	/// Groups are separated by a `ToolbarSpacer`, mirroring the capsule's dividers.
+	@available(iOS 26.0, visionOS 26.0, *)
+	struct AdaptiveSystemToolbar: ToolbarContent {
+		let groups: [[ToolbarAction]]
+
+		var body: some ToolbarContent {
+			let visible = groups.filter { !$0.isEmpty }
+			ForEach(Array(visible.enumerated()), id: \.offset) { index, group in
+				if index > 0 { ToolbarSpacer(.fixed, placement: .bottomBar) }
+				ToolbarItemGroup(placement: .bottomBar) {
+					ForEach(group) { action in button(action) }
+				}
+			}
+		}
+
+		@ViewBuilder private func button(_ action: ToolbarAction) -> some View {
+			let label = Label(action.title, systemImage: action.systemImage)
+			if action.shareItems.count == 1 {
+				ShareLink(item: action.shareItems[0].url) { label }
+			} else if action.shareItems.count > 1 {
+				Menu {
+					ForEach(action.shareItems) { item in
+						ShareLink(item: item.url) { Label(item.title, systemImage: item.systemImage) }
+					}
+				} label: {
+					label
+				}
+			} else if action.isSelected {
+				// The active item shows prominent (tinted) Liquid Glass.
+				Button(role: action.role, action: action.action) { label }
+					.disabled(!action.isEnabled)
+					.buttonStyle(.borderedProminent)
+			} else {
+				Button(role: action.role, action: action.action) { label }
+					.disabled(!action.isEnabled)
+			}
+		}
+	}
+#endif
+
+extension View {
+
+	/// Presents the action groups as a bottom toolbar: the **native** OS 26
+	/// Liquid Glass system toolbar where available, and the custom floating glass
+	/// capsule (``AdaptiveToolbar``) on earlier systems — the same call site
+	/// drives both.
+	@MainActor @ViewBuilder
+	public func adaptiveBottomToolbar(_ groups: [[ToolbarAction]]) -> some View {
+		#if os(iOS) || os(visionOS)
+			if #available(iOS 26.0, visionOS 26.0, *) {
+				toolbar { AdaptiveSystemToolbar(groups: groups) }
+			} else {
+				safeAreaInset(edge: .bottom) {
+					AdaptiveToolbar(groups: groups)
+						.padding(.horizontal)
+						.padding(.bottom, 6)
+						.frame(maxWidth: .infinity, alignment: .center)
+				}
+			}
+		#else
+			safeAreaInset(edge: .bottom) {
+				AdaptiveToolbar(groups: groups)
+					.padding(.horizontal)
+					.padding(.bottom, 6)
+					.frame(maxWidth: .infinity, alignment: .center)
+			}
+		#endif
+	}
+}
