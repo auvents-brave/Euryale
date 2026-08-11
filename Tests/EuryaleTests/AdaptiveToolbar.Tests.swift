@@ -59,4 +59,30 @@ struct AdaptiveToolbarTests {
 		let image = try bar.inspect().find(ViewType.Image.self)
 		#expect(try image.actualImage().name() == "ellipsis")
 	}
+
+	// MARK: - OS-26 native-toolbar helpers
+
+	@Test func `ToolbarActionMenu presents an ellipsis-circle menu`() throws {
+		let menu = ToolbarActionMenu([
+			ToolbarAction(title: "Settings", systemImage: "gearshape") {},
+			ToolbarAction(title: "New voyage", systemImage: "plus") {},
+		])
+		let names = try menu.inspect().findAll(ViewType.Image.self).compactMap { try? $0.actualImage().name() }
+		#expect(names.contains("ellipsis.circle"))
+	}
+
+	@Test func `ToolbarActionButton renders the action's label`() throws {
+		let button = ToolbarActionButton(ToolbarAction(title: "Settings", systemImage: "gearshape") {})
+		// Rendering-independent: the label text must be present.
+		_ = try button.inspect().find(text: "Settings")
+	}
+
+	@Test func `ToolbarMenuBar shows the leading ellipsis menu`() throws {
+		let bar = ToolbarMenuBar(
+			menu: [ToolbarAction(title: "New voyage", systemImage: "plus") {}],
+			trailing: [ToolbarAction(title: "Settings", systemImage: "gearshape") {}]
+		)
+		let names = try bar.inspect().findAll(ViewType.Image.self).compactMap { try? $0.actualImage().name() }
+		#expect(names.contains("ellipsis.circle"))
+	}
 }

@@ -545,6 +545,124 @@ private struct OverflowButton: View {
 	}
 #endif
 
+// MARK: - ToolbarActionMenu
+
+/// A single "⋯" (ellipsis) menu gathering several ``ToolbarAction``s into one
+/// native `Menu` — for tight hosts such as an iPhone navigation bar, where a row
+/// of icons is too busy. Each action becomes a menu row; a `.destructive` role is
+/// shown in red and disabled actions are dimmed. Share and `opensSettings`
+/// behaviours are not reproduced here (the plain `action` runs), so it suits
+/// command actions rather than share links.
+public struct ToolbarActionMenu: View {
+
+	private let actions: [ToolbarAction]
+	private let systemImage: String
+
+	/// Creates an ellipsis menu from the given actions, listed in order.
+	/// - Parameters:
+	///   - actions: The actions to offer in the menu.
+	///   - systemImage: The menu's own glyph (defaults to `ellipsis.circle`).
+	public init(_ actions: [ToolbarAction], systemImage: String = "ellipsis.circle") {
+		self.actions = actions
+		self.systemImage = systemImage
+	}
+
+	/// The content and behaviour of the view.
+	public var body: some View {
+		#if os(watchOS)
+			// `Menu` is unavailable on watchOS; this control has no watch use.
+			EmptyView()
+		#else
+			Menu {
+				ForEach(actions) { action in
+					Button(role: action.role, action: action.action) {
+						Label(action.title, systemImage: action.systemImage)
+					}
+					.disabled(!action.isEnabled)
+				}
+			} label: {
+				Image(systemName: systemImage)
+					.accessibilityLabel(Text("More", bundle: .module))
+			}
+		#endif
+	}
+}
+
+// MARK: - ToolbarActionButton
+
+/// Renders a ``ToolbarAction`` as a **native** toolbar button (default button
+/// style), so the host window/navigation toolbar draws its own OS-26 Liquid Glass
+/// chrome — unlike ``AdaptiveToolbar``, which paints a custom capsule. Place inside
+/// a `ToolbarItem`/`ToolbarItemGroup`. Honours the `.destructive` role, the enabled
+/// state, and (on macOS) `opensSettings` via `SettingsLink`.
+public struct ToolbarActionButton: View {
+
+	private let action: ToolbarAction
+
+	/// Creates a native toolbar button for the given action.
+	public init(_ action: ToolbarAction) {
+		self.action = action
+	}
+
+	/// The content and behaviour of the view.
+	public var body: some View {
+		#if os(macOS)
+			if action.opensSettings {
+				SettingsLink { Label(action.title, systemImage: action.systemImage) }
+					.disabled(!action.isEnabled)
+			} else {
+				button
+			}
+		#else
+			button
+		#endif
+	}
+
+	private var button: some View {
+		Button(role: action.role, action: action.action) {
+			Label(action.title, systemImage: action.systemImage)
+		}
+		.disabled(!action.isEnabled)
+	}
+}
+
+// MARK: - ToolbarMenuBar
+
+/// A compact floating control bar: a leading "⋯" menu of `menuActions` followed by
+/// `trailingActions` as inline icon buttons, wrapped in the same glass capsule as
+/// ``AdaptiveToolbar``. Space-stable — the menu absorbs extra actions without the
+/// bar growing — while a few key actions stay one tap (e.g. Settings kept last,
+/// outside the menu). Not shown on watchOS (no `Menu`).
+public struct ToolbarMenuBar: View {
+
+	private let menuActions: [ToolbarAction]
+	private let trailingActions: [ToolbarAction]
+
+	/// Creates a menu bar.
+	/// - Parameters:
+	///   - menuActions: Actions gathered into the leading "⋯" menu.
+	///   - trailingActions: Actions shown as inline icon buttons after the menu.
+	public init(menu menuActions: [ToolbarAction], trailing trailingActions: [ToolbarAction]) {
+		self.menuActions = menuActions
+		self.trailingActions = trailingActions
+	}
+
+	/// The content and behaviour of the view.
+	public var body: some View {
+		HStack(spacing: 8) {
+			if !menuActions.isEmpty {
+				ToolbarActionMenu(menuActions)
+			}
+			ForEach(trailingActions) { action in
+				ToolbarButton(action: action, iconOnly: true)
+			}
+		}
+		.padding(.horizontal, 12)
+		.padding(.vertical, 6)
+		.modifier(GlassCapsuleBackground())
+	}
+}
+
 // MARK: - GlassCapsuleBackground
 
 /// Wraps the toolbar in a Liquid Glass capsule where available, otherwise an
