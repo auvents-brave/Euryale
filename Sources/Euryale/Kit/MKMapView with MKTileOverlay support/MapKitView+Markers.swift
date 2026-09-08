@@ -61,18 +61,24 @@ public struct MapTrackStyle: Equatable, Sendable {
 	/// When `true`, the line fades from transparent at the first coordinate to
 	/// opaque at the last (a gradient along the line's length).
 	public var fadesAlongLength: Bool
+	/// When `true`, the core line is dashed rather than solid — for predictor
+	/// vectors (course/heading lines) that should read apart from a solid track.
+	/// Ignored when ``fadesAlongLength`` is `true`.
+	public var dashed: Bool
 
 	/// Creates a track style.
 	public init(
 		color: Color = .blue,
 		lineWidth: Double = 4,
 		haloWidth: Double = 12,
-		fadesAlongLength: Bool = true
+		fadesAlongLength: Bool = true,
+		dashed: Bool = false
 	) {
 		self.color = color
 		self.lineWidth = lineWidth
 		self.haloWidth = haloWidth
 		self.fadesAlongLength = fadesAlongLength
+		self.dashed = dashed
 	}
 
 	/// A blue line with a soft halo that fades along its length.
@@ -762,7 +768,10 @@ extension MapKitView {
 		private var lastRecenterToken: AnyHashable?
 		private var annotations: [AnyHashable: MarkerAnnotation] = [:]
 		private var overlays: [AnyHashable: (halo: MKPolyline, core: MKPolyline)] = [:]
-		private var pointCounts: [AnyHashable: Int] = [:]
+		/// The coordinates each overlay was built from, so a track that keeps its
+		/// point count but moves (a course predictor following the boat, the MOB
+		/// return line) is rebuilt instead of frozen in place.
+		private var lastCoordinates: [AnyHashable: [Coordinate]] = [:]
 		/// The style each overlay was built with — a style-only edit (e.g. a route
 		/// recoloured in the library) must rebuild the overlay too.
 		private var trackStyleCache: [AnyHashable: MapTrackStyle] = [:]
@@ -1077,7 +1086,7 @@ extension MapKitView {
 			var seen = Set<AnyHashable>()
 			for track in tracks {
 				seen.insert(track.id)
-				if pointCounts[track.id] == track.coordinates.count,
+				if lastCoordinates[track.id] == track.coordinates,
 					trackStyleCache[track.id] == track.style
 				{
 					continue
@@ -1094,7 +1103,7 @@ extension MapKitView {
 				delegate?.trackStyles[ObjectIdentifier(halo)] = (track.style, true)
 				delegate?.trackStyles[ObjectIdentifier(core)] = (track.style, false)
 				overlays[track.id] = (halo, core)
-				pointCounts[track.id] = track.coordinates.count
+				lastCoordinates[track.id] = track.coordinates
 				trackStyleCache[track.id] = track.style
 				map.addOverlay(halo, level: .aboveLabels)
 				map.addOverlay(core, level: .aboveLabels)
@@ -1112,7 +1121,7 @@ extension MapKitView {
 			delegate?.trackStyles[ObjectIdentifier(pair.halo)] = nil
 			delegate?.trackStyles[ObjectIdentifier(pair.core)] = nil
 			overlays[id] = nil
-			pointCounts[id] = nil
+			lastCoordinates[id] = nil
 			trackStyleCache[id] = nil
 		}
 	}

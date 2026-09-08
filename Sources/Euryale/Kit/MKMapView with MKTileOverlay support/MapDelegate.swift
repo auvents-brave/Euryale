@@ -112,6 +112,10 @@
 				renderer.strokeColor = base
 				renderer.lineWidth = entry.style.lineWidth
 				renderer.lineCap = .round
+				if entry.style.dashed {
+					let dash = entry.style.lineWidth * 2.5
+					renderer.lineDashPattern = [NSNumber(value: dash), NSNumber(value: dash)]
+				}
 				return renderer
 			}
 			return MKOverlayRenderer(overlay: overlay)
