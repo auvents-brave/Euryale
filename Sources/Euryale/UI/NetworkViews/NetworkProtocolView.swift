@@ -93,7 +93,7 @@ public struct NetworkProtocolView: View {
 	private var protocolRow: some View {
 		// A single protocol means there's nothing to choose — show no row.
 		if available.count > 1 {
-			LabeledContent("Protocol") {
+			LabeledContent {
 				Picker("Protocol", selection: $selection) {
 					ForEach(available) { proto in
 						Text(proto.rawValue).tag(proto)
@@ -108,6 +108,8 @@ public struct NetworkProtocolView: View {
 				#endif
 				.labelsHidden()
 				.fixedSize()
+			} label: {
+				Text("Protocol", bundle: .module)
 			}
 		}
 	}
@@ -136,7 +138,7 @@ public struct NetworkProtocolView: View {
 			},
 			label: {
 				Label {
-					Text("Bonjour")
+					Text("Bonjour", bundle: .module)
 					if let sel = selectedBonjourType {
 						Text(sel).font(.caption).foregroundStyle(.secondary)
 					}

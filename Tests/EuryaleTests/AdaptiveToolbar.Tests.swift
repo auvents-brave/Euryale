@@ -62,14 +62,18 @@ struct AdaptiveToolbarTests {
 
 	// MARK: - OS-26 native-toolbar helpers
 
-	@Test func `ToolbarActionMenu presents an ellipsis-circle menu`() throws {
-		let menu = ToolbarActionMenu([
-			ToolbarAction(title: "Settings", systemImage: "gearshape") {},
-			ToolbarAction(title: "New voyage", systemImage: "plus") {},
-		])
-		let names = try menu.inspect().findAll(ViewType.Image.self).compactMap { try? $0.actualImage().name() }
-		#expect(names.contains("ellipsis.circle"))
-	}
+	// watchOS renders the menu without the ellipsis-circle glyph (no `Menu`), so
+	// these two are checked on the platforms that use the native OS-26 toolbar.
+	#if !os(watchOS)
+		@Test func `ToolbarActionMenu presents an ellipsis-circle menu`() throws {
+			let menu = ToolbarActionMenu([
+				ToolbarAction(title: "Settings", systemImage: "gearshape") {},
+				ToolbarAction(title: "New voyage", systemImage: "plus") {},
+			])
+			let names = try menu.inspect().findAll(ViewType.Image.self).compactMap { try? $0.actualImage().name() }
+			#expect(names.contains("ellipsis.circle"))
+		}
+	#endif
 
 	@Test func `ToolbarActionButton renders the action's label`() throws {
 		let button = ToolbarActionButton(ToolbarAction(title: "Settings", systemImage: "gearshape") {})
@@ -77,12 +81,14 @@ struct AdaptiveToolbarTests {
 		_ = try button.inspect().find(text: "Settings")
 	}
 
-	@Test func `ToolbarMenuBar shows the leading ellipsis menu`() throws {
-		let bar = ToolbarMenuBar(
-			menu: [ToolbarAction(title: "New voyage", systemImage: "plus") {}],
-			trailing: [ToolbarAction(title: "Settings", systemImage: "gearshape") {}]
-		)
-		let names = try bar.inspect().findAll(ViewType.Image.self).compactMap { try? $0.actualImage().name() }
-		#expect(names.contains("ellipsis.circle"))
-	}
+	#if !os(watchOS)
+		@Test func `ToolbarMenuBar shows the leading ellipsis menu`() throws {
+			let bar = ToolbarMenuBar(
+				menu: [ToolbarAction(title: "New voyage", systemImage: "plus") {}],
+				trailing: [ToolbarAction(title: "Settings", systemImage: "gearshape") {}]
+			)
+			let names = try bar.inspect().findAll(ViewType.Image.self).compactMap { try? $0.actualImage().name() }
+			#expect(names.contains("ellipsis.circle"))
+		}
+	#endif
 }
