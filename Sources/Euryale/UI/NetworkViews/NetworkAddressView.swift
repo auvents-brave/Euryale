@@ -81,8 +81,10 @@ public struct NetworkAddressView: View {
 			addressRow.disabled(addressDisabled)
 
 			if let port {
-				LabeledContent("Port") {
+				LabeledContent {
 					IPAddressField(.port, text: port)
+				} label: {
+					Text("Port", bundle: .module)
 				}
 			}
 
@@ -110,8 +112,10 @@ public struct NetworkAddressView: View {
 	// MARK: Address field
 
 	private var addressRow: some View {
-		LabeledContent("Address") {
+		LabeledContent {
 			IPAddressField(ipVersion, text: $address)
+		} label: {
+			Text("Address", bundle: .module)
 		}
 	}
 
@@ -139,7 +143,7 @@ public struct NetworkAddressView: View {
 							if isResolving {
 								ProgressView().controlSize(.small)
 							} else {
-								Text("Resolve")
+								Text("Resolve", bundle: .module)
 							}
 						}
 						// Explicit style so the tap is captured here and not
@@ -158,8 +162,12 @@ public struct NetworkAddressView: View {
 				.padding(.top, 4)
 			},
 			label: {
-				Label("Domain Name", systemImage: "network")
-					.foregroundStyle(.secondary)
+				Label {
+					Text("Domain Name", bundle: .module)
+				} icon: {
+					Image(systemName: "network")
+				}
+				.foregroundStyle(.secondary)
 			}
 		)
 	}
