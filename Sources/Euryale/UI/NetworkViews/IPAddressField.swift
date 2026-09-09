@@ -58,7 +58,7 @@ public struct IPAddressField: View {
 			#endif
 			.onAppear { display = text }
 			.onChange(of: display) { old, new in
-				let formatted = format(new, inserting: new.count > old.count)
+				let formatted = Self.format(new, filter: filter, inserting: new.count > old.count)
 				// Rewriting `display` when filtering changed the value makes the
 				// field revert rejected characters; comparing lengths gives
 				// insert-vs-delete for IPv4's automatic dot.
@@ -67,7 +67,7 @@ public struct IPAddressField: View {
 			}
 			.onChange(of: text) { _, newValue in
 				// Reflect external changes (version switch reset, resolved address…).
-				if newValue != display { display = format(newValue, inserting: false) }
+				if newValue != display { display = Self.format(newValue, filter: filter, inserting: false) }
 			}
 	}
 
@@ -83,7 +83,7 @@ public struct IPAddressField: View {
 
 	// MARK: Formatting
 
-	private func format(_ input: String, inserting: Bool) -> String {
+	static func format(_ input: String, filter: Filter, inserting: Bool) -> String {
 		switch filter {
 		case .ipv4: formatIPv4(input, inserting: inserting)
 		case .ipv6: sanitizeIPv6(input)
@@ -94,7 +94,7 @@ public struct IPAddressField: View {
 	/// Groups digits into up to four octets (≤ 3 digits, ≤ 255 each).
 	/// On insertion only, appends a dot once an octet fills up — so the dot
 	/// appears right after the 3rd digit, yet Delete can still remove it.
-	private func formatIPv4(_ input: String, inserting: Bool) -> String {
+	static func formatIPv4(_ input: String, inserting: Bool) -> String {
 		var octets: [String] = [""]
 		for character in input {
 			if character == "." {
@@ -119,14 +119,14 @@ public struct IPAddressField: View {
 	}
 
 	/// Keeps hex digits and colons; collapses runs of 3+ colons to `::`.
-	private func sanitizeIPv6(_ input: String) -> String {
+	static func sanitizeIPv6(_ input: String) -> String {
 		var s = String(input.filter { $0.isHexDigit || $0 == ":" })
 		while s.contains(":::") { s = s.replacingOccurrences(of: ":::", with: "::") }
 		return String(s.prefix(39))  // max IPv6 string length
 	}
 
 	/// Keeps digits only; clamps to 0–65 535.
-	private func sanitizePort(_ input: String) -> String {
+	static func sanitizePort(_ input: String) -> String {
 		let digits = String(input.filter(\.isNumber).prefix(5))
 		if let value = Int(digits), value > 65_535 { return "65535" }
 		return digits
