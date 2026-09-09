@@ -51,7 +51,8 @@ struct NetworkViewsTests {
 
 	@Test func `IPv4 clamps each octet to 255 and keeps at most four`() {
 		#expect(IPAddressField.formatIPv4("999", inserting: false) == "255")
-		#expect(IPAddressField.formatIPv4("1.2.3.4.5", inserting: false) == "1.2.3.4")
+		#expect(IPAddressField.formatIPv4("1.2.3.999", inserting: false) == "1.2.3.255")
+		#expect(IPAddressField.formatIPv4("1.2.3.4", inserting: false) == "1.2.3.4")
 		#expect(IPAddressField.formatIPv4("10.0.0.1", inserting: false) == "10.0.0.1")
 	}
 
