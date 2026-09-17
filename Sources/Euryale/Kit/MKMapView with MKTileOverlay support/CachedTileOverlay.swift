@@ -104,12 +104,13 @@ import MapKit
 				return
 			}
 
-			// Tile is absent or stale — fetch from network.
+			// Tile is absent or stale — fetch from network, falling back to a stale copy.
 			fetchTile(at: path, cachedAt: fileURL, result: result)
 		}
 
 		/// Fetches the tile from the network, caching and returning it only when
-		/// the response body is a real image.
+		/// the response body is a real image. When the fetch fails — offline at
+		/// sea, most often — a cached copy is served however old it is.
 		private func fetchTile(
 			at path: MKTileOverlayPath,
 			cachedAt fileURL: URL,
@@ -121,22 +122,36 @@ import MapKit
 					return
 				}
 				if let error {
-					result(nil, error)
+					Self.serveStale(at: fileURL, failing: error, result: result)
 					return
 				}
 				guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-					result(nil, URLError(.badServerResponse))
+					Self.serveStale(at: fileURL, failing: URLError(.badServerResponse), result: result)
 					return
 				}
 				// Reject non-image bodies (e.g. a WMS `ServiceException`) so they
 				// are neither displayed nor written to the cache.
 				guard let data, Self.looksLikeImage(data) else {
-					result(nil, URLError(.cannotDecodeContentData))
+					Self.serveStale(at: fileURL, failing: URLError(.cannotDecodeContentData), result: result)
 					return
 				}
 				self.writeTileToCache(data: data, url: fileURL)
 				result(data, nil)
 			}.resume()
+		}
+
+		/// Returns the cached tile at `fileURL` regardless of its age, or `error`
+		/// when there is no usable copy.
+		private static func serveStale(
+			at fileURL: URL,
+			failing error: any Error,
+			result: @Sendable @escaping (Data?, (any Error)?) -> Void
+		) {
+			if let data = try? Data(contentsOf: fileURL), looksLikeImage(data) {
+				result(data, nil)
+			} else {
+				result(nil, error)
+			}
 		}
 
 		/// Whether `data` begins with a known raster-image signature (PNG, JPEG,
