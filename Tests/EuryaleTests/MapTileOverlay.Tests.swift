@@ -45,13 +45,18 @@ import Testing
 
 	/// A `URLProtocol` stub that answers from the request URL alone (stateless, so
 	/// the tests stay parallel-safe): an `error` path yields a 200 with a WMS-style
-	/// XML body, a `notfound` path yields 404, anything else a 200 PNG.
+	/// XML body, a `notfound` path yields 404, an `offline` path fails with no
+	/// connection, anything else a 200 PNG.
 	private final class StubURLProtocol: URLProtocol {
 		override class func canInit(with request: URLRequest) -> Bool { true }
 		override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 		override func stopLoading() {}
 		override func startLoading() {
 			let path = request.url?.absoluteString ?? ""
+			if path.contains("offline") {
+				client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
+				return
+			}
 			let status = path.contains("notfound") ? 404 : 200
 			let response = HTTPURLResponse(
 				url: request.url!, statusCode: status, httpVersion: "HTTP/1.1", headerFields: nil)!
@@ -67,11 +72,14 @@ import Testing
 		}
 	}
 
-	private func stubbedOverlay(template: String) -> CachedTileOverlay {
+	private func stubbedOverlay(
+		template: String, directory: String = "cto-test-\(UUID().uuidString)",
+		maximumCacheAge: TimeInterval = 30 * 24 * 60 * 60
+	) -> CachedTileOverlay {
 		let config = URLSessionConfiguration.ephemeral
 		config.protocolClasses = [StubURLProtocol.self]
 		return CachedTileOverlay(
-			directory: "cto-test-\(UUID().uuidString)", urlTemplate: template,
+			directory: directory, urlTemplate: template, maximumCacheAge: maximumCacheAge,
 			session: URLSession(configuration: config))
 	}
 
@@ -96,6 +104,23 @@ import Testing
 
 	@Test func `A non-200 response is rejected`() async {
 		let overlay = stubbedOverlay(template: "https://example.com/notfound/{z}/{x}/{y}.png")
+		#expect(await loadTile(overlay) == nil)
+	}
+
+	@Test func `A stale cached tile is served when the network fails`() async {
+		let directory = "cto-test-\(UUID().uuidString)"
+		let online = stubbedOverlay(template: "https://example.com/img/{z}/{x}/{y}.png", directory: directory)
+		#expect(await loadTile(online) != nil)
+
+		// Every cached tile is now stale, and the server cannot be reached.
+		for template in ["https://example.com/offline/{z}/{x}/{y}.png", "https://example.com/notfound/{z}/{x}/{y}.png"] {
+			let offline = stubbedOverlay(template: template, directory: directory, maximumCacheAge: 0)
+			#expect(await loadTile(offline) != nil)
+		}
+	}
+
+	@Test func `An offline fetch with nothing cached is rejected`() async {
+		let overlay = stubbedOverlay(template: "https://example.com/offline/{z}/{x}/{y}.png")
 		#expect(await loadTile(overlay) == nil)
 	}
 #endif
