@@ -1,10 +1,13 @@
 public import SwiftUI
 
-// Only the iOS SDK (27.1) declares the reserved-region API; the tvOS,
-// visionOS and macCatalyst SDKs are still at 27.0 and do not compile against
-// it. None of those runs on a folding screen, so they take the no-op below
-// until their SDKs catch up.
-#if os(iOS) && !targetEnvironment(macCatalyst)
+// Only the iOS 27.1 SDK declares the reserved-region API. The tvOS, visionOS
+// and macCatalyst SDKs are still at 27.0, and the CI runners' Xcode (26.5) is
+// older again, so neither `@available` nor a platform check is enough — the
+// symbol has to be absent from the source. Swift 6.4 means Xcode 27, the same
+// line `ContentBuilderShim` draws; Xcode 27.0 is the one gap, since it is
+// 6.4 with a 27.0 SDK, so build this with 27.1. None of the excluded
+// platforms runs on a folding screen, so they take the no-op below.
+#if compiler(>=6.4) && os(iOS) && !targetEnvironment(macCatalyst)
 	import UIKit
 #endif
 
@@ -73,10 +76,10 @@ extension View {
 	/// in a navigation, tab or window toolbar needs none of this: the system
 	/// lays those out itself.
 	///
-	/// A no-op before iOS 27.1, and on the platforms whose SDK does not yet
-	/// declare the API.
+	/// A no-op before iOS 27.1, and on the platforms and toolchains whose SDK
+	/// does not yet declare the API.
 	public func clearingReservedRegions() -> some View {
-		#if os(iOS) && !targetEnvironment(macCatalyst)
+		#if compiler(>=6.4) && os(iOS) && !targetEnvironment(macCatalyst)
 			modifier(ClearingReservedRegions())
 		#else
 			self
@@ -84,7 +87,7 @@ extension View {
 	}
 }
 
-#if os(iOS) && !targetEnvironment(macCatalyst)
+#if compiler(>=6.4) && os(iOS) && !targetEnvironment(macCatalyst)
 
 	/// What the window currently reserves, in its own coordinates.
 	private struct ReservedRegionReport: Equatable {
