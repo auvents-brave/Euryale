@@ -1,6 +1,10 @@
 public import SwiftUI
 
-#if canImport(UIKit) && !os(watchOS)
+// Only the iOS SDK (27.1) declares the reserved-region API; the tvOS,
+// visionOS and macCatalyst SDKs are still at 27.0 and do not compile against
+// it. None of those runs on a folding screen, so they take the no-op below
+// until their SDKs catch up.
+#if os(iOS) && !targetEnvironment(macCatalyst)
 	import UIKit
 #endif
 
@@ -69,10 +73,10 @@ extension View {
 	/// in a navigation, tab or window toolbar needs none of this: the system
 	/// lays those out itself.
 	///
-	/// A no-op before iOS 27.1, and on the platforms that have no reserved
-	/// regions.
+	/// A no-op before iOS 27.1, and on the platforms whose SDK does not yet
+	/// declare the API.
 	public func clearingReservedRegions() -> some View {
-		#if canImport(UIKit) && !os(watchOS)
+		#if os(iOS) && !targetEnvironment(macCatalyst)
 			modifier(ClearingReservedRegions())
 		#else
 			self
@@ -80,7 +84,7 @@ extension View {
 	}
 }
 
-#if canImport(UIKit) && !os(watchOS)
+#if os(iOS) && !targetEnvironment(macCatalyst)
 
 	/// What the window currently reserves, in its own coordinates.
 	private struct ReservedRegionReport: Equatable {
@@ -116,7 +120,7 @@ extension View {
 		}
 
 		@ViewBuilder private var reader: some View {
-			if #available(iOS 27.1, tvOS 27.1, visionOS 27.1, *) {
+			if #available(iOS 27.1, *) {
 				ReservedRegionReader { report = $0 }
 			}
 		}
@@ -125,7 +129,7 @@ extension View {
 	/// Reports the window's active occlusion regions, in window coordinates —
 	/// the window rather than this view, so the regions are measured against the
 	/// whole display however small the content is.
-	@available(iOS 27.1, tvOS 27.1, visionOS 27.1, *)
+	@available(iOS 27.1, *)
 	private struct ReservedRegionReader: UIViewRepresentable {
 
 		let report: (ReservedRegionReport) -> Void
