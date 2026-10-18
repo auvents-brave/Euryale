@@ -44,8 +44,12 @@ var deps: [Package.Dependency] = [
 		"1.18.0"..<"1.19.0"
 	),
 	.package(
+		// 0.10.5 or later: SwiftUI changed how it stores accessibility
+		// modifiers in OS 27, and only that release reads them back. On 0.10.3
+		// every `find(viewWithAccessibilityIdentifier:)` silently found
+		// nothing, failing the whole identifier suite against sound code.
 		url: "https://github.com/nalexn/ViewInspector",
-		from: "0.10.0"
+		from: "0.10.5"
 	),
 	.package(
 		// Markdown rendering for the in-app help browser (HelpKit).
