@@ -2,10 +2,6 @@ public import CoreLocation
 import Logging
 import MapKit
 
-#if canImport(Playgrounds)
-	import Playgrounds
-#endif
-
 #if canImport(GeoToolbox)
 	import GeoToolbox
 #endif
@@ -124,6 +120,8 @@ extension CLLocation {
 
 #if canImport(Playgrounds) && !NO_PLAYGROUND_EXAMPLES
 	// MARK: - Examples (Playground)
+
+	import Playgrounds
 
 	let locations = [
 		(CLLocation(latitude: 41.470, longitude: 9.268), "Bonifacio"),

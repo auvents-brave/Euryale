@@ -6,6 +6,11 @@ import PackageDescription
 var swiftSettings: [SwiftSetting] = [
 	.enableUpcomingFeature("InternalImportsByDefault"),
 	.enableUpcomingFeature("ExistentialAny"),
+	// The `#Playground` examples are for development. Without this they ship
+	// in the archive, and with them `libPlaygrounds.dylib` — whose visionOS
+	// slice Apple floors at the current SDK, so the linker warns on any lower
+	// deployment target.
+	.define("NO_PLAYGROUND_EXAMPLES", .when(configuration: .release)),
 ]
 if ProcessInfo.processInfo.environment["RUNNER"] == "VSCode" {
 	swiftSettings.append(.define("VSCode"))
