@@ -41,16 +41,20 @@ public struct ToolbarAction: Identifiable {
 
 	/// Stable identity for the action.
 	public let id: String
-	let title: String
-	let systemImage: String
+	/// What the action is called, shown as its title or its tooltip.
+	public let title: String
+	/// The SF Symbol that stands for it.
+	public let systemImage: String
+	/// Whether it can be run.
+	public let isEnabled: Bool
+	/// What it does.
+	public let action: @MainActor () -> Void
 	let display: LabelDisplay
 	let role: ButtonRole?
-	let isEnabled: Bool
 	let isSelected: Bool
 	let canOverflow: Bool
 	let opensSettings: Bool
 	let shareItems: [ToolbarShareItem]
-	let action: @MainActor () -> Void
 
 	/// Creates a toolbar action.
 	/// - Parameters:
