@@ -41,16 +41,20 @@ public struct ToolbarAction: Identifiable {
 
 	/// Stable identity for the action.
 	public let id: String
-	let title: String
-	let systemImage: String
+	/// What the action is called, shown as its title or its tooltip.
+	public let title: String
+	/// The SF Symbol that stands for it.
+	public let systemImage: String
+	/// Whether it can be run.
+	public let isEnabled: Bool
+	/// What it does.
+	public let action: @MainActor () -> Void
 	let display: LabelDisplay
 	let role: ButtonRole?
-	let isEnabled: Bool
 	let isSelected: Bool
 	let canOverflow: Bool
 	let opensSettings: Bool
 	let shareItems: [ToolbarShareItem]
-	let action: @MainActor () -> Void
 
 	/// Creates a toolbar action.
 	/// - Parameters:
@@ -231,7 +235,7 @@ public struct AdaptiveToolbar: View {
 				.padding(.horizontal, showsBackground ? 10 : 0)
 				.padding(.vertical, showsBackground ? 5 : 0)
 			#endif
-			.modifier(GlassCapsuleBackground(isEnabled: showsBackground))
+			.modifier(CapsuleBackground(isEnabled: showsBackground))
 			#if os(tvOS)
 				.clipShape(Capsule())
 			#elseif os(macOS)
@@ -659,34 +663,27 @@ public struct ToolbarMenuBar: View {
 		}
 		.padding(.horizontal, 12)
 		.padding(.vertical, 6)
-		.modifier(GlassCapsuleBackground())
+		.modifier(CapsuleBackground())
 	}
 }
 
-// MARK: - GlassCapsuleBackground
+// MARK: - CapsuleBackground
 
-/// Wraps the toolbar in a Liquid Glass capsule where available, otherwise an
-/// ultra-thin material capsule — matching the floating system toolbars.
-private struct GlassCapsuleBackground: ViewModifier {
+/// Wraps the toolbar in an ultra-thin material capsule.
+///
+/// No Liquid Glass: from OS 26 this toolbar is not drawn at all — the host's
+/// own bar is, through ``SwiftUICore/View/adaptiveToolbar(groups:placement:)``
+/// — so glass here could only ever be an imitation of the real bar standing
+/// next to it.
+private struct CapsuleBackground: ViewModifier {
 	var isEnabled: Bool = true
 
 	@ContentBuilder
 	func body(content: Content) -> some View {
-		if !isEnabled {
-			content
+		if isEnabled {
+			content.background(.ultraThinMaterial, in: Capsule())
 		} else {
-			// `glassEffect` is unavailable on visionOS (Liquid Glass is the
-			// system default there), so gate it out at compile time and fall
-			// back to the material capsule.
-			#if os(visionOS)
-				content.background(.ultraThinMaterial, in: Capsule())
-			#else
-				if #available(iOS 26.0, macOS 26.0, tvOS 26.0, watchOS 26.0, *) {
-					content.glassEffect(.regular, in: Capsule())
-				} else {
-					content.background(.ultraThinMaterial, in: Capsule())
-				}
-			#endif
+			content
 		}
 	}
 }

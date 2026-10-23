@@ -11,8 +11,9 @@ import MapKit
 		// Maximum age before a cached tile is considered stale and re-fetched.
 		let maximumCacheAge: TimeInterval
 
-		// Resolved once at init time; never recomputed per tile.
-		private let cacheBaseURL: URL
+		// Resolved once at init time; never recomputed per tile. Shared with the
+		// offline prefetch, so a tile is filed and looked for under one path.
+		let location: TileCacheLocation
 
 		// MARK: Init
 
@@ -37,28 +38,7 @@ import MapKit
 		) {
 			self.maximumCacheAge = maximumCacheAge
 
-			// Resolve the cache root once.
-			// App Group path:  <group-container>/Library/Caches/<directory>
-			// Fallback path:   ~/Library/Caches/<directory>  (per-app, sandboxed)
-			if let appGroup,
-				let groupContainer = FileManager.default.containerURL(
-					forSecurityApplicationGroupIdentifier: appGroup)
-			{
-				cacheBaseURL =
-					groupContainer
-					.appendingPathComponent("Library/Caches/\(directory)", isDirectory: true)
-			} else {
-				let cachesRoot =
-					(try? FileManager.default.url(
-						for: .cachesDirectory,
-						in: .userDomainMask,
-						appropriateFor: nil,
-						create: true
-					)) ?? FileManager.default.temporaryDirectory
-				cacheBaseURL =
-					cachesRoot
-					.appendingPathComponent(directory, isDirectory: true)
-			}
+			location = TileCacheLocation(directory: directory, appGroup: appGroup)
 
 			// A caller (the tests) may inject a session; otherwise build one that
 			// bypasses URLCache so the on-disk cache here is the only cache.
@@ -168,12 +148,9 @@ import MapKit
 		// MARK: Private helpers
 
 		private func tileFileURL(for path: MKTileOverlayPath) -> URL {
-			cacheBaseURL
-				.appendingPathComponent(
-					"\(path.contentScaleFactor)/\(path.z)/\(path.x)",
-					isDirectory: true
-				)
-				.appendingPathComponent("\(path.y).png")
+			location.fileURL(
+				for: TileIndex(z: path.z, x: path.x, y: path.y),
+				scale: Int(path.contentScaleFactor))
 		}
 
 		private func writeTileToCache(data: Data, url: URL) {
@@ -198,9 +175,6 @@ import MapKit
 		/// The full WMS `GetMap` URL minus the trailing `&BBOX=` value.
 		private let getMapBaseURL: String
 
-		/// Half-width of the Web Mercator square, in metres.
-		private static let webMercatorExtent = 20_037_508.342_789_244
-
 		init(
 			directory: String,
 			getMapBaseURL: String,
@@ -214,15 +188,10 @@ import MapKit
 		}
 
 		override func url(forTilePath path: MKTileOverlayPath) -> URL {
-			let tiles = pow(2.0, Double(path.z))
-			let size = 2 * Self.webMercatorExtent / tiles
-			let minX = -Self.webMercatorExtent + Double(path.x) * size
-			let maxX = minX + size
-			let maxY = Self.webMercatorExtent - Double(path.y) * size
-			let minY = maxY - size
-			// WMS 1.1.1 with SRS=EPSG:900913 expects BBOX as minX,minY,maxX,maxY.
-			let bbox = "\(minX),\(minY),\(maxX),\(maxY)"
-			return URL(string: getMapBaseURL + "&BBOX=" + bbox) ?? URL(string: "about:blank")!
+			TileCacheLocation.wmsURL(
+				getMapBaseURL: getMapBaseURL,
+				for: TileIndex(z: path.z, x: path.x, y: path.y))
+				?? URL(string: "about:blank")!
 		}
 	}
 #endif
