@@ -4,7 +4,7 @@ public import SwiftUI
 // MARK: - Protocol
 
 /// An `AppIntent` that supplies the Siri phrase shown in the tip card
-/// on macOS and Mac Catalyst, where the system `SiriTipView` is unavailable.
+/// on the platforms where the system `SiriTipView` cannot be used.
 public protocol SiriTipDisplayable: AppIntent {
 	/// Primary Siri phrase displayed to the user.
 	static var tipPhrase: LocalizedStringResource { get }
@@ -33,7 +33,7 @@ public struct SiriTipItem {
 	@MainActor
 	public init<I: SiriTipDisplayable>(_ intent: I, _ isVisible: Binding<Bool>) {
 		self.isVisible = isVisible
-		#if os(macOS) || targetEnvironment(macCatalyst)
+		#if os(macOS) || targetEnvironment(macCatalyst) || os(tvOS)
 			self.view = AnyView(SiriTipView(intent: intent, isVisible: isVisible))
 		#else
 			self.view = AnyView(
@@ -46,11 +46,20 @@ public struct SiriTipItem {
 
 // MARK: - macOS / Mac Catalyst implementation
 
-/// On macOS and Mac Catalyst the system `SiriTipView` (AppIntents) is unavailable.
-/// This implementation provides the same `init(intent:isVisible:)` interface so
-/// that ``SiriTipItem`` and ``RollingTipView`` compile identically on all platforms.
-#if os(macOS) || targetEnvironment(macCatalyst)
-	/// The macOS / Mac Catalyst stand-in for the system Siri tip card.
+/// The stand-in for the system Siri tip card.
+///
+/// On macOS and Mac Catalyst the system `SiriTipView` (AppIntents) is declared
+/// unavailable. On tvOS it is declared available from 16.0 but the conformance
+/// to `View` is absent from the 17.4 runtime, so merely compiling against it
+/// stops any app that links this module from launching — a missing-symbol halt
+/// in dyld, before `main`. An availability check cannot help: the reference is
+/// resolved at load. tvOS therefore takes this implementation too, which costs
+/// nothing, Siri tips having no surface there.
+///
+/// It provides the same `init(intent:isVisible:)` interface so that
+/// ``SiriTipItem`` and ``RollingTipView`` compile identically everywhere.
+#if os(macOS) || targetEnvironment(macCatalyst) || os(tvOS)
+	/// The stand-in for the system Siri tip card.
 	public struct SiriTipView<Intent: SiriTipDisplayable>: View {
 		let intent: Intent
 		@Binding var isVisible: Bool
