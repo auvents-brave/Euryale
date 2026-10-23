@@ -141,7 +141,11 @@ import Testing
 			])
 			.frame(width: 320, height: 60)
 
-			assertSnapshot(of: view, as: .image)
+			// TEMPORARY: re-recording the reference on CI's toolchain, which this
+			// Mac does not have. Reverted in the next commit.
+			withSnapshotTesting(record: .all) {
+				assertSnapshot(of: view, as: .image)
+			}
 		}
 	}
 
