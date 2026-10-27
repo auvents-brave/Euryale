@@ -99,11 +99,19 @@ private struct AdaptiveToolbarModifier: ViewModifier {
 		}
 
 		/// The floating capsule, for the systems with no bar of their own.
+		///
+		/// It clears the regions the window reserves — the hinge of a folding
+		/// iPhone — here rather than at each host, so adopting this modifier
+		/// cannot quietly drop it. It did once: hosts used to build the capsule
+		/// themselves and call `clearingReservedRegions()` on it, and moving them
+		/// onto this modifier left two of Thoosa's three bars sitting on the
+		/// crease. The system's own bar, from OS 26 up, needs none of this.
 		private var capsule: some View {
 			AdaptiveToolbar(groups: groups)
 				.padding(.horizontal)
 				.padding(.bottom, 6)
 				.frame(maxWidth: .infinity, alignment: .center)
+				.clearingReservedRegions()
 		}
 	#endif
 }
