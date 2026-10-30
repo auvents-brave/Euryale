@@ -1,4 +1,5 @@
 public import Foundation
+public import Stheno
 
 /// A layer the offline download can fill: where its tiles are cached, and how
 /// each tile's URL is built.
