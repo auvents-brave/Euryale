@@ -1,4 +1,5 @@
 import Foundation
+import Stheno
 import Testing
 
 @testable import Euryale
