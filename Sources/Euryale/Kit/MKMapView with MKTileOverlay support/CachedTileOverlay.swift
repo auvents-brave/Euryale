@@ -1,4 +1,5 @@
 import MapKit
+import Stheno
 
 #if !os(watchOS)
 	class CachedTileOverlay: MKTileOverlay, @unchecked Sendable {

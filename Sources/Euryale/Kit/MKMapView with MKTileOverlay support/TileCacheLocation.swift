@@ -1,4 +1,5 @@
 public import Foundation
+public import Stheno
 
 /// Where one layer's tiles sit on disk, and the URL each is fetched from.
 ///
