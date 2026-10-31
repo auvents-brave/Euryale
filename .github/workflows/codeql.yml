@@ -14,6 +14,12 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  # The one job that pairs a swiftly toolchain with an Xcode SDK, so the two
+  # must match: this one selects Xcode 26.5 below. `@ContentBuilder` comes from
+  # Xcode 27's SwiftUI, not from the Swift 6.4 compiler, and ContentBuilderShim
+  # keys off `compiler(<6.4)` — so a 6.4 toolchain on the 26.5 SDK compiles the
+  # shim away and then cannot find the attribute. Raise both together, once the
+  # runners carry a stable Xcode 27.
   SWIFT_VERSION: "6.3.2"
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
